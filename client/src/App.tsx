@@ -12,32 +12,137 @@ import GtdPage from "@/pages/gtd";
 import ProjectsPage from "@/pages/projects";
 import ProjectDetailPage from "@/pages/project-detail";
 import AllTasksPage from "@/pages/all-tasks";
+import AuthPage from "@/pages/auth";
+
+// Context providers
+import { ProjectProvider } from "@/context/project-context";
+import { TaskProvider } from "@/context/task-context";
+import { TimerProvider } from "@/context/timer-context";
+import { AuthProvider } from "@/context/auth-context";
+import { TeamProvider } from "@/context/team-context";
+
+// Import ProtectedRoute
+import { ProtectedRoute } from "@/components/protected-route";
 
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Dashboard} />
-      <Route path="/projects" component={ProjectsPage} />
-      <Route path="/projects/:id" component={ProjectDetailPage} />
-      <Route path="/tasks" component={AllTasksPage} />
-      <Route path="/eisenhower" component={EisenhowerPage} />
-      <Route path="/pomodoro" component={PomodoroPage} />
-      <Route path="/time-blocking" component={TimeBlockingPage} />
-      <Route path="/smart-goals" component={SmartGoalsPage} />
-      <Route path="/focus-mode" component={FocusModePage} />
-      <Route path="/analytics" component={AnalyticsPage} />
-      <Route path="/gtd" component={GtdPage} />
-      <Route component={NotFound} />
+      <Route path="/auth" component={AuthPage} />
+      
+      {/* Protected Routes */}
+      <Route path="/">
+        {() => (
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        )}
+      </Route>
+      
+      <Route path="/projects">
+        {() => (
+          <ProtectedRoute>
+            <ProjectsPage />
+          </ProtectedRoute>
+        )}
+      </Route>
+      
+      <Route path="/projects/:id">
+        {(params) => (
+          <ProtectedRoute>
+            <ProjectDetailPage />
+          </ProtectedRoute>
+        )}
+      </Route>
+      
+      <Route path="/tasks">
+        {() => (
+          <ProtectedRoute>
+            <AllTasksPage />
+          </ProtectedRoute>
+        )}
+      </Route>
+      
+      <Route path="/eisenhower">
+        {() => (
+          <ProtectedRoute>
+            <EisenhowerPage />
+          </ProtectedRoute>
+        )}
+      </Route>
+      
+      <Route path="/pomodoro">
+        {() => (
+          <ProtectedRoute>
+            <PomodoroPage />
+          </ProtectedRoute>
+        )}
+      </Route>
+      
+      <Route path="/time-blocking">
+        {() => (
+          <ProtectedRoute>
+            <TimeBlockingPage />
+          </ProtectedRoute>
+        )}
+      </Route>
+      
+      <Route path="/smart-goals">
+        {() => (
+          <ProtectedRoute>
+            <SmartGoalsPage />
+          </ProtectedRoute>
+        )}
+      </Route>
+      
+      <Route path="/focus-mode">
+        {() => (
+          <ProtectedRoute>
+            <FocusModePage />
+          </ProtectedRoute>
+        )}
+      </Route>
+      
+      <Route path="/analytics">
+        {() => (
+          <ProtectedRoute>
+            <AnalyticsPage />
+          </ProtectedRoute>
+        )}
+      </Route>
+      
+      <Route path="/gtd">
+        {() => (
+          <ProtectedRoute>
+            <GtdPage />
+          </ProtectedRoute>
+        )}
+      </Route>
+      
+      <Route>
+        {() => (
+          <ProtectedRoute>
+            <NotFound />
+          </ProtectedRoute>
+        )}
+      </Route>
     </Switch>
   );
 }
 
 function App() {
   return (
-    <>
-      <Router />
-      <Toaster />
-    </>
+    <AuthProvider>
+      <TeamProvider>
+        <ProjectProvider>
+          <TaskProvider>
+            <TimerProvider>
+              <Router />
+              <Toaster />
+            </TimerProvider>
+          </TaskProvider>
+        </ProjectProvider>
+      </TeamProvider>
+    </AuthProvider>
   );
 }
 
