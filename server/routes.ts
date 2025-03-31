@@ -693,8 +693,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       try {
         // First try with Firebase verification
-        const auth = getAuth();
-        const decodedToken = await auth.verifyIdToken(idToken);
+        const { adminAuth } = require('./firebase');
+        const decodedToken = await adminAuth.verifyIdToken(idToken);
         email = decodedToken.email || null;
         name = decodedToken.name || null;
         picture = decodedToken.picture || null;
@@ -732,11 +732,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // firebaseUid not used in MemStorage implementation
         });
       }
-      // Skip the Firebase UID update since we're using MemStorage
-      // else if (!user.firebaseUid) {
-      //   // Update existing user with Firebase UID if they don't have one
-      //   user = await storage.updateUser(user.id, { firebaseUid: uid });
-      // }
+      // Update Firebase UID if needed and if available from decodedToken
+      try {
+        const uid = decodedToken?.uid;
+        if (uid && (!user.firebaseUid || user.firebaseUid !== uid)) {
+          // Update existing user with Firebase UID
+          user = await storage.updateUser(user.id, { firebaseUid: uid });
+        }
+      } catch (error) {
+        console.warn('Could not update Firebase UID for user', error);
+      }
       
       if (!user) {
         return res.status(500).json({ message: "Failed to create or retrieve user" });

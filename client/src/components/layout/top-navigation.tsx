@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { AddTaskDialog } from "@/components/tasks/add-task-dialog";
 import { Input } from "@/components/ui/input";
 import { UserDropdown } from "@/components/user-dropdown";
+import { Logo, LogoWithText } from "@/components/ui/logo";
 import { Menu, Bell, HelpCircle } from "lucide-react";
 
 interface TopNavigationProps {
@@ -24,10 +25,13 @@ export function TopNavigation({ onOpenMobileSidebar }: TopNavigationProps) {
           >
             <Menu className="h-5 w-5" />
           </Button>
-          <h1 className="ml-3 text-lg font-semibold text-gray-800">ProductivityHub</h1>
+          <div className="ml-3">
+            <LogoWithText size="small" />
+          </div>
         </div>
         
-        <div className="hidden md:block">
+        <div className="hidden md:flex items-center gap-8">
+          <LogoWithText size="medium" />
           <div className="relative">
             <svg
               xmlns="http://www.w3.org/2000/svg"

@@ -7,6 +7,7 @@ import { FRAMEWORKS } from "@/lib/constants";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Project } from "@shared/schema";
 import { AddProjectDialog } from "@/components/projects/add-project-dialog";
+import { LogoWithText } from "@/components/ui/logo";
 
 interface SidebarProps {
   isMobileOpen: boolean;
@@ -31,10 +32,7 @@ export function Sidebar({ isMobileOpen, onMobileClose }: SidebarProps) {
     <div className="flex flex-col w-64 h-full bg-white border-r border-gray-200">
       <div className="px-6 pt-6 pb-4">
         <div className="flex items-center">
-          <div className="w-8 h-8 rounded-md bg-primary-600 flex items-center justify-center mr-3">
-            <span className="material-icons text-white text-xl">view_timeline</span>
-          </div>
-          <h1 className="text-xl font-semibold text-gray-800">TaskFlow</h1>
+          <LogoWithText size="medium" />
         </div>
       </div>
 
@@ -126,6 +124,63 @@ export function Sidebar({ isMobileOpen, onMobileClose }: SidebarProps) {
                   </div>
                 </Link>
               ))}
+            </div>
+          </div>
+          
+          {/* AI Assistant Section */}
+          <div>
+            <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mt-4 mb-2">
+              AI Assistant
+            </h3>
+            <div className="space-y-1">
+              <Link href="/ai-assistant">
+                <div 
+                  className={cn(
+                    "group flex items-center px-2 py-2 text-sm font-medium rounded-md cursor-pointer",
+                    location === "/ai-assistant" 
+                      ? "border-l-4 border-primary-600 bg-primary-50 text-primary-600" 
+                      : "text-gray-700 hover:bg-gray-50"
+                  )}
+                >
+                  <span className={cn(
+                    "material-icons mr-3",
+                    location === "/ai-assistant" ? "text-primary-600" : "text-gray-500"
+                  )}>auto_awesome</span>
+                  AI Suggestions
+                </div>
+              </Link>
+              <Link href="/ai-scheduler">
+                <div 
+                  className={cn(
+                    "group flex items-center px-2 py-2 text-sm font-medium rounded-md cursor-pointer",
+                    location === "/ai-scheduler" 
+                      ? "border-l-4 border-primary-600 bg-primary-50 text-primary-600" 
+                      : "text-gray-700 hover:bg-gray-50"
+                  )}
+                >
+                  <span className={cn(
+                    "material-icons mr-3",
+                    location === "/ai-scheduler" ? "text-primary-600" : "text-gray-500"
+                  )}>schedule</span>
+                  Schedule Optimizer
+                </div>
+              </Link>
+              <Link href="/ai-insights">
+                <div 
+                  className={cn(
+                    "group flex items-center px-2 py-2 text-sm font-medium rounded-md cursor-pointer",
+                    location === "/ai-insights" 
+                      ? "border-l-4 border-primary-600 bg-primary-50 text-primary-600" 
+                      : "text-gray-700 hover:bg-gray-50"
+                  )}
+                >
+                  <span className={cn(
+                    "material-icons mr-3",
+                    location === "/ai-insights" ? "text-primary-600" : "text-gray-500"
+                  )}>insights</span>
+                  Productivity Insights
+                </div>
+              </Link>
             </div>
           </div>
         </nav>
