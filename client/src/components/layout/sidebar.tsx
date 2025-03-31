@@ -58,18 +58,53 @@ export function Sidebar({ isMobileOpen, onMobileClose }: SidebarProps) {
           </Link>
 
           <div>
-            <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mt-4 mb-2">
-              Projects
-            </h3>
+            <div className="flex items-center justify-between px-3 mt-4 mb-2">
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                Projects
+              </h3>
+              <Link href="/projects">
+                <div className="text-xs text-primary-600 hover:underline cursor-pointer">
+                  View All
+                </div>
+              </Link>
+            </div>
             <div className="space-y-1">
-              {projects.map((project) => (
+              <Link href="/projects">
+                <div className={cn(
+                  "group flex items-center px-2 py-2 text-sm font-medium rounded-md cursor-pointer",
+                  location === "/projects" 
+                    ? "border-l-4 border-primary-600 bg-primary-50 text-primary-600" 
+                    : "text-gray-700 hover:bg-gray-50"
+                )}>
+                  <span className={cn(
+                    "material-icons mr-3",
+                    location === "/projects" ? "text-primary-600" : "text-gray-500"
+                  )}>folder_special</span>
+                  All Projects
+                </div>
+              </Link>
+              
+              {projects.slice(0, 3).map((project) => (
                 <Link key={project.id} href={`/projects/${project.id}`}>
-                  <div className="group flex items-center px-2 py-2 text-sm font-medium text-gray-700 rounded-md hover:bg-gray-50 cursor-pointer">
-                    <span className="material-icons mr-3 text-gray-500">folder</span>
+                  <div className={cn(
+                    "group flex items-center px-2 py-2 text-sm font-medium rounded-md cursor-pointer",
+                    location === `/projects/${project.id}` 
+                      ? "border-l-4 border-primary-600 bg-primary-50 text-primary-600" 
+                      : "text-gray-700 hover:bg-gray-50"
+                  )}>
+                    <span className={cn(
+                      "material-icons mr-3",
+                      location === `/projects/${project.id}` ? "text-primary-600" : "text-gray-500"
+                    )}>folder</span>
                     {project.name}
                   </div>
                 </Link>
               ))}
+              {projects.length > 3 && (
+                <div className="text-xs text-gray-500 px-2 py-1">
+                  + {projects.length - 3} more projects
+                </div>
+              )}
             </div>
           </div>
 

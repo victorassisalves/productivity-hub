@@ -9,11 +9,15 @@ import SmartGoalsPage from "@/pages/smart-goals";
 import FocusModePage from "@/pages/focus-mode";
 import AnalyticsPage from "@/pages/analytics";
 import GtdPage from "@/pages/gtd";
+import ProjectsPage from "@/pages/projects";
+import ProjectDetailPage from "@/pages/project-detail";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Dashboard} />
+      <Route path="/projects" component={ProjectsPage} />
+      <Route path="/projects/:id" component={ProjectDetailPage} />
       <Route path="/eisenhower" component={EisenhowerPage} />
       <Route path="/pomodoro" component={PomodoroPage} />
       <Route path="/time-blocking" component={TimeBlockingPage} />
