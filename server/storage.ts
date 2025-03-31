@@ -1,4 +1,4 @@
-import { 
+import {
   tasks, projects, pomodoroSessions, goals, timeBlocks,
   users, teams, teamMembers, collaborativeProjects, taskAssignments, activityLogs,
   type Task, type InsertTask, 
@@ -14,6 +14,21 @@ import {
   type ActivityLog, type InsertActivityLog
 } from "@shared/schema";
 import * as crypto from 'crypto';
+
+// Re-export types for use in FirestoreStorage
+export type {
+  Task, InsertTask,
+  Project, InsertProject,
+  PomodoroSession, InsertPomodoroSession,
+  Goal, InsertGoal,
+  TimeBlock, InsertTimeBlock,
+  User, InsertUser,
+  Team, InsertTeam,
+  TeamMember, InsertTeamMember,
+  CollaborativeProject, InsertCollaborativeProject,
+  TaskAssignment, InsertTaskAssignment,
+  ActivityLog, InsertActivityLog
+};
 
 export interface IStorage {
   // Task operations
@@ -634,4 +649,7 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+import { FirestoreStorage } from './firestore-storage';
+
+// Export FirestoreStorage instance for persistent storage
+export const storage = new FirestoreStorage();
