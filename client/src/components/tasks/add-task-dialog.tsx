@@ -22,6 +22,8 @@ interface AddTaskDialogProps {
 // Extend the task schema for form validation
 const formSchema = insertTaskSchema.extend({
   dueDate: z.string().optional(),
+  // Add coercion for projectId to handle string -> number conversion
+  projectId: z.string().transform(val => val ? Number(val) : undefined).optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -53,7 +55,7 @@ export function AddTaskDialog({ open, onOpenChange, defaultStatus = TASK_STATUSE
       const formattedData = {
         ...data,
         dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
-        projectId: data.projectId ? Number(data.projectId) : undefined,
+        // The projectId is already converted to a number by the schema
       };
       const response = await apiRequest("POST", "/api/tasks", formattedData);
       return response.json();
