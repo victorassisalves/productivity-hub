@@ -17,6 +17,13 @@ export const TASK_STATUSES = [
   { id: "COMPLETED", name: "Completed", color: "bg-green-500" }
 ];
 
+// Status colors for UI components
+export const STATUS_COLORS = {
+  TODO: "text-slate-700 border-slate-200 bg-slate-50",
+  IN_PROGRESS: "text-blue-500 border-blue-200 bg-blue-50",
+  COMPLETED: "text-green-500 border-green-200 bg-green-50"
+};
+
 // Task Priority Options
 export const TASK_PRIORITIES = [
   { id: "LOW", name: "Low", color: "text-green-500", icon: "ArrowDown" },
@@ -24,6 +31,14 @@ export const TASK_PRIORITIES = [
   { id: "HIGH", name: "High", color: "text-orange-500", icon: "ArrowUp" },
   { id: "URGENT", name: "Urgent", color: "text-red-500", icon: "AlertTriangle" }
 ];
+
+// Priority colors for UI components
+export const PRIORITY_COLORS = {
+  LOW: "text-green-500 border-green-200 bg-green-50",
+  MEDIUM: "text-yellow-500 border-yellow-200 bg-yellow-50",
+  HIGH: "text-orange-500 border-orange-200 bg-orange-50",
+  URGENT: "text-red-500 border-red-200 bg-red-50"
+};
 
 // User Roles
 export const USER_ROLES = [
@@ -123,6 +138,14 @@ export const POMODORO_SETTINGS = {
   DEFAULT_SHORT_BREAK_MINUTES: 5,
   DEFAULT_LONG_BREAK_MINUTES: 15,
   DEFAULT_ROUNDS_BEFORE_LONG_BREAK: 4
+};
+
+// Default Pomodoro durations (in minutes)
+export const DEFAULT_POMODORO_DURATIONS = {
+  WORK: 25,
+  SHORT_BREAK: 5,
+  LONG_BREAK: 15,
+  ROUNDS_BEFORE_LONG_BREAK: 4
 };
 
 // Problem-solving techniques
