@@ -31,7 +31,6 @@ export function TopNavigation({ onOpenMobileSidebar }: TopNavigationProps) {
         </div>
         
         <div className="hidden md:flex items-center gap-8">
-          <LogoWithText size="medium" />
           <div className="relative">
             <svg
               xmlns="http://www.w3.org/2000/svg"
