@@ -61,8 +61,10 @@ export function AddTaskDialog({ open, onOpenChange, defaultStatus = TASK_STATUSE
         dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
         // The projectId is already converted to a number by the schema
       };
-      const response = await apiRequest("POST", "/api/tasks", formattedData);
-      return response.json();
+      return await apiRequest<any>("/api/tasks", {
+        method: "POST",
+        body: JSON.stringify(formattedData)
+      });
     },
     onSuccess: (task) => {
       queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
@@ -71,8 +73,8 @@ export function AddTaskDialog({ open, onOpenChange, defaultStatus = TASK_STATUSE
       form.reset();
       onOpenChange(false);
       
-      // Navigate to all tasks page
-      navigate("/tasks");
+      // Navigate to task details page
+      navigate(`/tasks/${task.id}`);
     },
   });
 

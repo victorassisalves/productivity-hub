@@ -693,15 +693,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       try {
         // First try with Firebase verification
-        const { adminAuth } = require('./firebase');
-        const decodedToken = await adminAuth.verifyIdToken(idToken);
-        email = decodedToken.email || null;
-        name = decodedToken.name || null;
-        picture = decodedToken.picture || null;
-        console.log("Firebase token successfully verified");
+        const { adminAuth } = await import('./firebase');
+        
+        if (adminAuth) {
+          const decodedToken = await adminAuth.verifyIdToken(idToken);
+          email = decodedToken.email || req.body.email || null;
+          name = decodedToken.name || req.body.name || null;
+          picture = decodedToken.picture || req.body.picture || null;
+          console.log("Firebase token successfully verified");
+          
+          // Store the Firebase UID for future use
+          const firebaseUid = decodedToken.uid;
+          req.body.firebaseUid = firebaseUid;
+        } else {
+          throw new Error("Firebase admin auth not available");
+        }
       } catch (firebaseError) {
-        console.warn("Could not verify Firebase token, using mock data:", firebaseError);
-        // Fall back to mock verification for development
+        console.warn("Could not verify Firebase token, using provided data:", firebaseError);
+        // Fall back to provided data for development
         email = req.body.email || null;
         name = req.body.name || null;
         picture = req.body.picture || null;
@@ -732,9 +741,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // firebaseUid not used in MemStorage implementation
         });
       }
-      // Update Firebase UID if needed and if available from decodedToken
+      // Update Firebase UID if needed and if available from request body
       try {
-        const uid = decodedToken?.uid;
+        const uid = req.body.firebaseUid;
         if (uid && (!user.firebaseUid || user.firebaseUid !== uid)) {
           // Update existing user with Firebase UID
           user = await storage.updateUser(user.id, { firebaseUid: uid });

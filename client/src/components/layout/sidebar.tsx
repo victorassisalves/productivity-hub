@@ -7,7 +7,7 @@ import { FRAMEWORKS } from "@/lib/constants";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Project } from "@shared/schema";
 import { AddProjectDialog } from "@/components/projects/add-project-dialog";
-import { LogoWithText } from "@/components/ui/logo";
+import { Logo, LogoWithText } from "@/components/ui/logo";
 
 interface SidebarProps {
   isMobileOpen: boolean;
@@ -32,7 +32,13 @@ export function Sidebar({ isMobileOpen, onMobileClose }: SidebarProps) {
     <div className="flex flex-col w-64 h-full bg-white border-r border-gray-200">
       <div className="px-6 pt-6 pb-4">
         <div className="flex items-center">
-          <LogoWithText size="medium" />
+          <Logo size="large" />
+          <span className="ml-2 font-semibold text-xl">
+            <span className="bg-gradient-to-r from-primary-600 to-primary-400 bg-clip-text text-transparent">
+              Productivity
+            </span>
+            <span>Hub</span>
+          </span>
         </div>
       </div>
 

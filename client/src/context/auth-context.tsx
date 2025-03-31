@@ -41,7 +41,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Send token to backend to either verify or create a user account
           const userData = await apiRequest<User>('/api/auth/firebase-token', {
             method: 'POST',
-            body: JSON.stringify({ idToken }),
+            body: JSON.stringify({ 
+              idToken,
+              email: firebaseUser.email,
+              name: firebaseUser.displayName,
+              picture: firebaseUser.photoURL
+            }),
           });
           
           setUser(userData);
