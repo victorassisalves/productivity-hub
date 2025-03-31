@@ -649,9 +649,10 @@ export class MemStorage implements IStorage {
   }
 }
 
-// Import FirestoreStorage implementation
+// Import storage implementations
 import { FirestoreStorage } from './firestore-storage';
+import { MemoryStorage } from './memory-storage';
 
 // Create and export storage instance
-// Using FirestoreStorage for persistent data storage
-export const storage = new FirestoreStorage();
+// For development, use MemoryStorage instead since Firestore has authentication issues
+export const storage = new MemoryStorage();
