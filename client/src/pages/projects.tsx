@@ -195,12 +195,12 @@ function ProjectCard({ project, onEdit }: ProjectCardProps) {
   };
 
   return (
-    <Card className="overflow-hidden border border-gray-200 hover:shadow-md transition-shadow flex flex-col h-[260px]">
+    <Card className="overflow-hidden border border-gray-200 hover:shadow-md transition-shadow">
       <div 
         className="h-2 w-full" 
         style={{ backgroundColor: project.color || '#6366f1' }}
       ></div>
-      <CardHeader className="pb-2 px-6 pt-4">
+      <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
           <div>
             <CardTitle className="text-xl font-semibold">{project.name}</CardTitle>
@@ -223,27 +223,22 @@ function ProjectCard({ project, onEdit }: ProjectCardProps) {
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="pt-2 px-6">
-        <div className="text-sm text-gray-500 mb-2 min-h-[80px]">
-          {project.description && (
-            <p className="mb-4">{project.description}</p>
-          )}
-          <div className="flex items-center mt-2">
+      <CardContent>
+        <div className="text-sm text-gray-500 mb-4">
+          <div className="flex items-center">
             <span className="material-icons text-gray-400 mr-2 text-sm">task</span>
             {taskCount} {taskCount === 1 ? 'task' : 'tasks'}
           </div>
         </div>
       </CardContent>
-      <CardFooter className="flex justify-between border-t pt-6 pb-2 px-6">
+      <CardFooter className="flex justify-between border-t pt-4">
         <Link href={`/projects/${project.id}`}>
-          <Button variant="outline" size="sm" className="h-9 px-4">
+          <Button variant="outline">
             View Details
           </Button>
         </Link>
         <Button 
           variant="secondary"
-          size="sm"
-          className="h-9 px-4"
           onClick={(e) => {
             e.preventDefault();
             if (onEdit) {
@@ -251,7 +246,7 @@ function ProjectCard({ project, onEdit }: ProjectCardProps) {
             }
           }}
         >
-          <span className="material-icons mr-2 text-sm">edit</span>
+          <span className="material-icons mr-1 text-sm">edit</span>
           Edit
         </Button>
       </CardFooter>
