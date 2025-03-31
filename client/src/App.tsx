@@ -11,6 +11,7 @@ import AnalyticsPage from "@/pages/analytics";
 import GtdPage from "@/pages/gtd";
 import ProjectsPage from "@/pages/projects";
 import ProjectDetailPage from "@/pages/project-detail";
+import AllTasksPage from "@/pages/all-tasks";
 
 function Router() {
   return (
@@ -18,6 +19,7 @@ function Router() {
       <Route path="/" component={Dashboard} />
       <Route path="/projects" component={ProjectsPage} />
       <Route path="/projects/:id" component={ProjectDetailPage} />
+      <Route path="/tasks" component={AllTasksPage} />
       <Route path="/eisenhower" component={EisenhowerPage} />
       <Route path="/pomodoro" component={PomodoroPage} />
       <Route path="/time-blocking" component={TimeBlockingPage} />

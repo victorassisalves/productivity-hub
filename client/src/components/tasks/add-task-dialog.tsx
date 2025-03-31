@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Project } from "@shared/schema";
 import { TASK_PRIORITIES, TASK_STATUSES } from "@/lib/constants";
 import { format } from "date-fns";
+import { useLocation } from "wouter";
 
 interface AddTaskDialogProps {
   open: boolean;
@@ -33,6 +34,9 @@ export function AddTaskDialog({ open, onOpenChange, defaultStatus = TASK_STATUSE
   const { data: projects = [] } = useQuery<Project[]>({
     queryKey: ["/api/projects"],
   });
+  
+  // For navigation
+  const [, navigate] = useLocation();
 
   // Set up form
   const form = useForm<FormValues>({
@@ -60,10 +64,15 @@ export function AddTaskDialog({ open, onOpenChange, defaultStatus = TASK_STATUSE
       const response = await apiRequest("POST", "/api/tasks", formattedData);
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (task) => {
       queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
+      
+      // Reset form and close dialog
       form.reset();
       onOpenChange(false);
+      
+      // Navigate to all tasks page
+      navigate("/tasks");
     },
   });
 

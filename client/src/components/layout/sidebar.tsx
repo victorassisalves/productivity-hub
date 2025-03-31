@@ -56,6 +56,23 @@ export function Sidebar({ isMobileOpen, onMobileClose }: SidebarProps) {
               Dashboard
             </div>
           </Link>
+          
+          <Link href="/tasks">
+            <div 
+              className={cn(
+                "group flex items-center px-2 py-2 text-sm font-medium rounded-md cursor-pointer",
+                location === "/tasks" 
+                  ? "border-l-4 border-primary-600 bg-primary-50 text-primary-600" 
+                  : "text-gray-700 hover:bg-gray-50"
+              )}
+            >
+              <span className={cn(
+                "material-icons mr-3",
+                location === "/tasks" ? "text-primary-600" : "text-gray-500"
+              )}>assignment</span>
+              All Tasks
+            </div>
+          </Link>
 
           <div>
             <div className="flex items-center justify-between px-3 mt-4 mb-2">

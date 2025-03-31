@@ -45,8 +45,10 @@ export default function ProjectDetailPage() {
   
   // Initialize filtered tasks when project tasks change
   useEffect(() => {
-    setFilteredTasks(projectTasks);
-  }, [projectTasks]);
+    if (projectTasks?.length > 0) {
+      setFilteredTasks(projectTasks);
+    }
+  }, [projectTasks.length]);
   
   if (!project) {
     return (

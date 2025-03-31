@@ -8,6 +8,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { TASK_PRIORITIES, TASK_STATUSES } from "@/lib/constants";
+import { useLocation } from "wouter";
 
 import {
   Dialog,
@@ -60,6 +61,7 @@ type FormValues = z.infer<typeof formSchema>;
 
 export function EditTaskDialog({ open, onOpenChange, task }: EditTaskDialogProps) {
   const { toast } = useToast();
+  const [, navigate] = useLocation();
   
   // Fetch projects for dropdown
   const { data: projects = [] } = useQuery<Project[]>({
@@ -104,6 +106,9 @@ export function EditTaskDialog({ open, onOpenChange, task }: EditTaskDialogProps
         title: "Task updated",
         description: "Your task has been updated successfully",
       });
+      
+      // Navigate to all tasks page
+      navigate("/tasks");
     },
     onError: (error) => {
       toast({
@@ -146,19 +151,25 @@ export function EditTaskDialog({ open, onOpenChange, task }: EditTaskDialogProps
             <FormField
               control={form.control}
               name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Task description"
-                      className="resize-none"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              render={({ field }) => {
+                return (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Task description"
+                        className="resize-none"
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        ref={field.ref}
+                        value={field.value || ""}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
             />
             
             <div className="grid grid-cols-2 gap-4">
