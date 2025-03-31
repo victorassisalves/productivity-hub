@@ -1,5 +1,5 @@
 import { 
-  FieldValue, Timestamp 
+  FieldValue, Timestamp, DocumentData
 } from 'firebase-admin/firestore';
 import { db } from './firebase';
 import { compareDesc } from 'date-fns';
@@ -96,7 +96,7 @@ export class FirestoreStorage implements IStorage {
       createdAt: new Date(),
       completed: task.completed !== undefined ? task.completed : false,
       progress: task.progress !== undefined ? task.progress : 0,
-      status: task.status || 'to-do',
+      status: task.status || 'todo',
       priority: task.priority || 'medium',
       tags: task.tags || []
     };
@@ -206,10 +206,8 @@ export class FirestoreStorage implements IStorage {
       color: project.color || '#6366f1'
     };
     
-    await setDoc(
-      doc(db, 'projects', id.toString()), 
-      this.convertDatesToTimestamp(newProject)
-    );
+    await db.collection('projects').doc(id.toString())
+      .set(this.convertDatesToTimestamp(newProject));
     
     return newProject;
   }
@@ -219,17 +217,15 @@ export class FirestoreStorage implements IStorage {
     if (!project) return undefined;
     
     const updatedProject = { ...project, ...projectUpdate };
-    await updateDoc(
-      doc(db, 'projects', id.toString()), 
-      this.convertDatesToTimestamp(projectUpdate)
-    );
+    await db.collection('projects').doc(id.toString())
+      .update(this.convertDatesToTimestamp(projectUpdate));
     
     return updatedProject;
   }
 
   async deleteProject(id: number): Promise<boolean> {
     try {
-      await deleteDoc(doc(db, 'projects', id.toString()));
+      await db.collection('projects').doc(id.toString()).delete();
       return true;
     } catch (error) {
       console.error(`Error deleting project ${id}:`, error);
@@ -255,10 +251,8 @@ export class FirestoreStorage implements IStorage {
       endTime: session.completed ? new Date() : null 
     };
     
-    await setDoc(
-      doc(db, 'pomodoro_sessions', id.toString()), 
-      this.convertDatesToTimestamp(newSession)
-    );
+    await db.collection('pomodoro_sessions').doc(id.toString())
+      .set(this.convertDatesToTimestamp(newSession));
     
     return newSession;
   }
@@ -273,10 +267,8 @@ export class FirestoreStorage implements IStorage {
     }
     
     const updatedSession = { ...session, ...sessionUpdate };
-    await updateDoc(
-      doc(db, 'pomodoro_sessions', id.toString()), 
-      this.convertDatesToTimestamp(sessionUpdate)
-    );
+    await db.collection('pomodoro_sessions').doc(id.toString())
+      .update(this.convertDatesToTimestamp(sessionUpdate));
     
     return updatedSession;
   }
@@ -325,10 +317,8 @@ export class FirestoreStorage implements IStorage {
       timeBound: goal.timeBound || null
     };
     
-    await setDoc(
-      doc(db, 'goals', id.toString()), 
-      this.convertDatesToTimestamp(newGoal)
-    );
+    await db.collection('goals').doc(id.toString())
+      .set(this.convertDatesToTimestamp(newGoal));
     
     return newGoal;
   }
@@ -338,17 +328,15 @@ export class FirestoreStorage implements IStorage {
     if (!goal) return undefined;
     
     const updatedGoal = { ...goal, ...goalUpdate };
-    await updateDoc(
-      doc(db, 'goals', id.toString()), 
-      this.convertDatesToTimestamp(goalUpdate)
-    );
+    await db.collection('goals').doc(id.toString())
+      .update(this.convertDatesToTimestamp(goalUpdate));
     
     return updatedGoal;
   }
 
   async deleteGoal(id: number): Promise<boolean> {
     try {
-      await deleteDoc(doc(db, 'goals', id.toString()));
+      await db.collection('goals').doc(id.toString()).delete();
       return true;
     } catch (error) {
       console.error(`Error deleting goal ${id}:`, error);
@@ -373,10 +361,8 @@ export class FirestoreStorage implements IStorage {
       color: timeBlock.color || '#6366f1'
     };
     
-    await setDoc(
-      doc(db, 'time_blocks', id.toString()), 
-      this.convertDatesToTimestamp(newTimeBlock)
-    );
+    await db.collection('time_blocks').doc(id.toString())
+      .set(this.convertDatesToTimestamp(newTimeBlock));
     
     return newTimeBlock;
   }
@@ -386,17 +372,15 @@ export class FirestoreStorage implements IStorage {
     if (!timeBlock) return undefined;
     
     const updatedTimeBlock = { ...timeBlock, ...timeBlockUpdate };
-    await updateDoc(
-      doc(db, 'time_blocks', id.toString()), 
-      this.convertDatesToTimestamp(timeBlockUpdate)
-    );
+    await db.collection('time_blocks').doc(id.toString())
+      .update(this.convertDatesToTimestamp(timeBlockUpdate));
     
     return updatedTimeBlock;
   }
 
   async deleteTimeBlock(id: number): Promise<boolean> {
     try {
-      await deleteDoc(doc(db, 'time_blocks', id.toString()));
+      await db.collection('time_blocks').doc(id.toString()).delete();
       return true;
     } catch (error) {
       console.error(`Error deleting time block ${id}:`, error);
@@ -523,17 +507,15 @@ export class FirestoreStorage implements IStorage {
     }
     
     const updatedUser = { ...user, ...userUpdate };
-    await updateDoc(
-      doc(db, 'users', id.toString()), 
-      this.convertDatesToTimestamp(userUpdate)
-    );
+    await db.collection('users').doc(id.toString())
+      .update(this.convertDatesToTimestamp(userUpdate));
     
     return updatedUser;
   }
 
   async deleteUser(id: number): Promise<boolean> {
     try {
-      await deleteDoc(doc(db, 'users', id.toString()));
+      await db.collection('users').doc(id.toString()).delete();
       return true;
     } catch (error) {
       console.error(`Error deleting user ${id}:`, error);
@@ -571,10 +553,8 @@ export class FirestoreStorage implements IStorage {
       avatar: team.avatar || null
     };
     
-    await setDoc(
-      doc(db, 'teams', id.toString()),
-      this.convertDatesToTimestamp(newTeam)
-    );
+    await db.collection('teams').doc(id.toString())
+      .set(this.convertDatesToTimestamp(newTeam));
     
     // Automatically add the creator as team admin
     await this.addTeamMember({
@@ -592,10 +572,8 @@ export class FirestoreStorage implements IStorage {
     if (!team) return undefined;
     
     const updatedTeam = { ...team, ...teamUpdate };
-    await updateDoc(
-      doc(db, 'teams', id.toString()), 
-      this.convertDatesToTimestamp(teamUpdate)
-    );
+    await db.collection('teams').doc(id.toString())
+      .update(this.convertDatesToTimestamp(teamUpdate));
     
     return updatedTeam;
   }
@@ -609,7 +587,7 @@ export class FirestoreStorage implements IStorage {
       }
       
       // Then delete the team
-      await deleteDoc(doc(db, 'teams', id.toString()));
+      await db.collection('teams').doc(id.toString()).delete();
       return true;
     } catch (error) {
       console.error(`Error deleting team ${id}:`, error);
@@ -668,17 +646,15 @@ export class FirestoreStorage implements IStorage {
       role: teamMember.role || 'member'
     };
     
-    await setDoc(
-      doc(db, 'team_members', id.toString()),
-      this.convertDatesToTimestamp(newTeamMember)
-    );
+    await db.collection('team_members').doc(id.toString())
+      .set(this.convertDatesToTimestamp(newTeamMember));
     
     return newTeamMember;
   }
 
   async removeTeamMember(id: number): Promise<boolean> {
     try {
-      await deleteDoc(doc(db, 'team_members', id.toString()));
+      await db.collection('team_members').doc(id.toString()).delete();
       return true;
     } catch (error) {
       console.error(`Error removing team member ${id}:`, error);
@@ -691,10 +667,8 @@ export class FirestoreStorage implements IStorage {
     if (!teamMember) return undefined;
     
     const updatedTeamMember = { ...teamMember, role };
-    await updateDoc(
-      doc(db, 'team_members', id.toString()),
-      { role }
-    );
+    await db.collection('team_members').doc(id.toString())
+      .update({ role });
     
     return updatedTeamMember;
   }
@@ -755,17 +729,15 @@ export class FirestoreStorage implements IStorage {
       permissions: collaborativeProject.permissions || 'read'
     };
     
-    await setDoc(
-      doc(db, 'collaborative_projects', id.toString()),
-      this.convertDatesToTimestamp(newCollaborativeProject)
-    );
+    await db.collection('collaborative_projects').doc(id.toString())
+      .set(this.convertDatesToTimestamp(newCollaborativeProject));
     
     return newCollaborativeProject;
   }
 
   async unshareProject(id: number): Promise<boolean> {
     try {
-      await deleteDoc(doc(db, 'collaborative_projects', id.toString()));
+      await db.collection('collaborative_projects').doc(id.toString()).delete();
       return true;
     } catch (error) {
       console.error(`Error unsharing project ${id}:`, error);
@@ -824,17 +796,15 @@ export class FirestoreStorage implements IStorage {
       status: taskAssignment.status || 'pending'
     };
     
-    await setDoc(
-      doc(db, 'task_assignments', id.toString()),
-      this.convertDatesToTimestamp(newTaskAssignment)
-    );
+    await db.collection('task_assignments').doc(id.toString())
+      .set(this.convertDatesToTimestamp(newTaskAssignment));
     
     return newTaskAssignment;
   }
 
   async unassignTask(id: number): Promise<boolean> {
     try {
-      await deleteDoc(doc(db, 'task_assignments', id.toString()));
+      await db.collection('task_assignments').doc(id.toString()).delete();
       return true;
     } catch (error) {
       console.error(`Error unassigning task ${id}:`, error);
@@ -847,10 +817,8 @@ export class FirestoreStorage implements IStorage {
     if (!taskAssignment) return undefined;
     
     const updatedTaskAssignment = { ...taskAssignment, status };
-    await updateDoc(
-      doc(db, 'task_assignments', id.toString()),
-      { status }
-    );
+    await db.collection('task_assignments').doc(id.toString())
+      .update({ status });
     
     return updatedTaskAssignment;
   }
@@ -923,10 +891,8 @@ export class FirestoreStorage implements IStorage {
       teamId: activityLog.teamId || null
     };
     
-    await setDoc(
-      doc(db, 'activity_logs', id.toString()),
-      this.convertDatesToTimestamp(newActivityLog)
-    );
+    await db.collection('activity_logs').doc(id.toString())
+      .set(this.convertDatesToTimestamp(newActivityLog));
     
     return newActivityLog;
   }
