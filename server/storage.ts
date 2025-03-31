@@ -654,5 +654,5 @@ import { FirestoreStorage } from './firestore-storage';
 import { MemoryStorage } from './memory-storage';
 
 // Create and export storage instance
-// For development, use MemoryStorage instead since Firestore has authentication issues
-export const storage = new MemoryStorage();
+// Use Firestore for persistent storage
+export const storage = new FirestoreStorage();
