@@ -83,28 +83,6 @@ export function Sidebar({ isMobileOpen, onMobileClose }: SidebarProps) {
                   All Projects
                 </div>
               </Link>
-              
-              {projects.slice(0, 3).map((project) => (
-                <Link key={project.id} href={`/projects/${project.id}`}>
-                  <div className={cn(
-                    "group flex items-center px-2 py-2 text-sm font-medium rounded-md cursor-pointer",
-                    location === `/projects/${project.id}` 
-                      ? "border-l-4 border-primary-600 bg-primary-50 text-primary-600" 
-                      : "text-gray-700 hover:bg-gray-50"
-                  )}>
-                    <span className={cn(
-                      "material-icons mr-3",
-                      location === `/projects/${project.id}` ? "text-primary-600" : "text-gray-500"
-                    )}>folder</span>
-                    {project.name}
-                  </div>
-                </Link>
-              ))}
-              {projects.length > 3 && (
-                <div className="text-xs text-gray-500 px-2 py-1">
-                  + {projects.length - 3} more projects
-                </div>
-              )}
             </div>
           </div>
 

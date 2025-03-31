@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRoute, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/app-layout";
@@ -7,14 +7,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AddTaskDialog } from "@/components/tasks/add-task-dialog";
 import { TaskCard } from "@/components/tasks/task-card";
+import { TaskFilter } from "@/components/tasks/task-filter";
 import { Project, Task } from "@shared/schema";
 import { Separator } from "@/components/ui/separator";
 import { TASK_STATUSES } from "@/lib/constants";
+import { Badge } from "@/components/ui/badge";
 
 export default function ProjectDetailPage() {
   const [, params] = useRoute<{ id: string }>("/projects/:id");
   const projectId = params ? parseInt(params.id) : 0;
   const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
+  const [filteredTasks, setFilteredTasks] = useState<Task[]>([]);
   
   // Fetch project details
   const { data: projects = [] } = useQuery<Project[]>({
@@ -24,16 +27,26 @@ export default function ProjectDetailPage() {
   const project = projects.find(p => p.id === projectId);
 
   // Fetch tasks for this project
-  const { data: allTasks = [] } = useQuery<Task[]>({
+  const { data: allTasks = [], isLoading: isTasksLoading } = useQuery<Task[]>({
     queryKey: ["/api/tasks"],
   });
   
   const projectTasks = allTasks.filter(task => task.projectId === projectId);
   
   // Group tasks by status
-  const todoTasks = projectTasks.filter(task => task.status === TASK_STATUSES.TODO);
-  const inProgressTasks = projectTasks.filter(task => task.status === TASK_STATUSES.IN_PROGRESS);
-  const completedTasks = projectTasks.filter(task => task.status === TASK_STATUSES.COMPLETED);
+  const todoTasks = filteredTasks.filter(task => task.status === TASK_STATUSES.TODO);
+  const inProgressTasks = filteredTasks.filter(task => task.status === TASK_STATUSES.IN_PROGRESS);
+  const completedTasks = filteredTasks.filter(task => task.status === TASK_STATUSES.COMPLETED);
+  
+  // Handle filtered tasks 
+  const handleFilterChange = useCallback((filtered: Task[]) => {
+    setFilteredTasks(filtered);
+  }, []);
+  
+  // Initialize filtered tasks when project tasks change
+  useEffect(() => {
+    setFilteredTasks(projectTasks);
+  }, [projectTasks]);
   
   if (!project) {
     return (
@@ -57,7 +70,7 @@ export default function ProjectDetailPage() {
       title={project.name}
       description={project.description || ""}
     >
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
           <div className="flex items-center mb-2">
             <Link href="/projects">
@@ -73,22 +86,42 @@ export default function ProjectDetailPage() {
           </div>
           <p className="text-gray-500">{project.description || "No description"}</p>
         </div>
-        <Button onClick={() => setIsAddTaskOpen(true)}>
-          <span className="material-icons mr-2 text-sm">add</span>
-          Add Task
-        </Button>
+        <div className="flex space-x-2">
+          <Button variant="outline" onClick={() => {}}>
+            <span className="material-icons mr-2 text-sm">edit</span>
+            Edit Project
+          </Button>
+          <Button onClick={() => setIsAddTaskOpen(true)}>
+            <span className="material-icons mr-2 text-sm">add</span>
+            Add Task
+          </Button>
+        </div>
       </div>
       
       <Card>
         <CardContent className="p-6">
           <div className="flex flex-col">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Project Tasks</h3>
-              <div className="text-sm text-gray-500">
-                {projectTasks.length} {projectTasks.length === 1 ? 'task' : 'tasks'} in total
+              <div className="flex items-baseline gap-2">
+                <h3 className="text-lg font-semibold">Project Tasks</h3>
+                <div className="text-sm text-gray-500">
+                  {projectTasks.length} {projectTasks.length === 1 ? 'task' : 'tasks'} in total
+                </div>
+              </div>
+              <div className="flex gap-2">
+                {projectTasks.length > 0 && (
+                  <Badge variant="outline" className="flex items-center">
+                    <span className="material-icons text-xs mr-1 text-primary-500">assignment_turned_in</span>
+                    {completedTasks.length}/{projectTasks.length} completed
+                  </Badge>
+                )}
               </div>
             </div>
             
+            {projectTasks.length > 0 && (
+              <TaskFilter tasks={projectTasks} onChange={handleFilterChange} />
+            )}
+
             <Tabs defaultValue="all" className="w-full">
               <TabsList className="mb-4">
                 <TabsTrigger value="all">All Tasks</TabsTrigger>
@@ -98,17 +131,28 @@ export default function ProjectDetailPage() {
               </TabsList>
               
               <TabsContent value="all">
-                {projectTasks.length === 0 ? (
+                {isTasksLoading ? (
+                  <div className="flex justify-center py-10">
+                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600"></div>
+                  </div>
+                ) : projectTasks.length === 0 ? (
                   <div className="text-center py-10">
+                    <div className="text-6xl text-gray-200 flex justify-center mb-4">
+                      <span className="material-icons" style={{ fontSize: '4rem' }}>assignment</span>
+                    </div>
                     <p className="text-gray-500 mb-4">No tasks in this project yet.</p>
                     <Button onClick={() => setIsAddTaskOpen(true)}>
                       <span className="material-icons mr-2 text-sm">add</span>
                       Add First Task
                     </Button>
                   </div>
+                ) : filteredTasks.length === 0 ? (
+                  <div className="text-center py-10">
+                    <p className="text-gray-500">No tasks match your filters.</p>
+                  </div>
                 ) : (
                   <div className="space-y-4">
-                    {projectTasks.map(task => (
+                    {filteredTasks.map(task => (
                       <TaskCard key={task.id} task={task} />
                     ))}
                   </div>
@@ -116,7 +160,11 @@ export default function ProjectDetailPage() {
               </TabsContent>
               
               <TabsContent value="todo">
-                {todoTasks.length === 0 ? (
+                {isTasksLoading ? (
+                  <div className="flex justify-center py-10">
+                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600"></div>
+                  </div>
+                ) : todoTasks.length === 0 ? (
                   <div className="text-center py-10">
                     <p className="text-gray-500">No tasks to do.</p>
                   </div>
@@ -130,7 +178,11 @@ export default function ProjectDetailPage() {
               </TabsContent>
               
               <TabsContent value="in-progress">
-                {inProgressTasks.length === 0 ? (
+                {isTasksLoading ? (
+                  <div className="flex justify-center py-10">
+                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600"></div>
+                  </div>
+                ) : inProgressTasks.length === 0 ? (
                   <div className="text-center py-10">
                     <p className="text-gray-500">No tasks in progress.</p>
                   </div>
@@ -144,7 +196,11 @@ export default function ProjectDetailPage() {
               </TabsContent>
               
               <TabsContent value="completed">
-                {completedTasks.length === 0 ? (
+                {isTasksLoading ? (
+                  <div className="flex justify-center py-10">
+                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600"></div>
+                  </div>
+                ) : completedTasks.length === 0 ? (
                   <div className="text-center py-10">
                     <p className="text-gray-500">No completed tasks.</p>
                   </div>
