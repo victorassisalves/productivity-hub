@@ -95,6 +95,7 @@ export const users = pgTable("users", {
   role: text("role").default("user"), // "user", "admin"
   createdAt: timestamp("created_at").defaultNow(),
   lastLogin: timestamp("last_login"),
+  firebaseUid: text("firebase_uid"), // Add Firebase User ID for authentication with Firebase
 }, (table) => {
   return {
     emailIdx: uniqueIndex("email_idx").on(table.email),

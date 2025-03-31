@@ -1,13 +1,17 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { apiRequest } from '@/lib/queryClient';
 import { User } from '@shared/schema';
+import { auth, loginWithGoogle, logoutFirebase } from '@/lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { useToast } from '@/hooks/use-toast';
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
-  logout: () => void;
+  loginWithGoogle: () => Promise<boolean>;
+  logout: () => Promise<void>;
   register: (userData: RegisterData) => Promise<boolean>;
 }
 
@@ -24,29 +28,60 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
+  // Listen for Firebase auth state changes
   useEffect(() => {
-    // Check if user is already logged in
-    const checkAuth = async () => {
-      try {
-        // Using the getQueryFn with on401: "returnNull" option
-        const response = await fetch('/api/auth/current-user');
-        if (response.ok) {
-          const userData = await response.json();
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        try {
+          // When Firebase Auth authenticates, send the token to our backend
+          const idToken = await firebaseUser.getIdToken();
+          
+          // Send token to backend to either verify or create a user account
+          const userData = await apiRequest<User>('/api/auth/firebase-token', {
+            method: 'POST',
+            body: JSON.stringify({ idToken }),
+          });
+          
           setUser(userData);
-        } else {
-          setUser(null);
+          setIsLoading(false);
+        } catch (error) {
+          console.error('Failed to authenticate with backend:', error);
+          toast({
+            title: 'Authentication error',
+            description: 'Failed to connect your Google account. Please try again.',
+            variant: 'destructive',
+          });
+          setIsLoading(false);
         }
-      } catch (error) {
-        console.error('Failed to check authentication status', error);
-        setUser(null);
-      } finally {
-        setIsLoading(false);
+      } else {
+        // No Firebase user, check for session-based auth
+        checkServerAuth();
       }
-    };
+    });
 
-    checkAuth();
-  }, []);
+    return () => unsubscribe();
+  }, [toast]);
+
+  // Check if user is authenticated with the server (session-based)
+  const checkServerAuth = async () => {
+    try {
+      try {
+        // Use apiRequest which handles errors and parsing
+        const userData = await apiRequest<User>('/api/auth/current-user');
+        setUser(userData);
+      } catch (err) {
+        // If API request fails, user is not authenticated
+        setUser(null);
+      }
+    } catch (error) {
+      console.error('Failed to check authentication status', error);
+      setUser(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
@@ -66,9 +101,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const googleLogin = async (): Promise<boolean> => {
+    try {
+      setIsLoading(true);
+      await loginWithGoogle();
+      return true;
+    } catch (error) {
+      console.error('Google login failed', error);
+      toast({
+        title: 'Login Failed',
+        description: 'Could not sign in with Google. Please try again.',
+        variant: 'destructive',
+      });
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const logout = async () => {
     try {
       setIsLoading(true);
+      
+      // First logout from Firebase
+      if (auth.currentUser) {
+        await logoutFirebase();
+      }
+      
+      // Then logout from our backend
       await apiRequest<{ success: boolean }>('/api/auth/logout', {
         method: 'POST',
       });
@@ -76,6 +136,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
     } catch (error) {
       console.error('Logout failed', error);
+      toast({
+        title: 'Logout Failed',
+        description: 'Could not sign out. Please try again.',
+        variant: 'destructive',
+      });
     } finally {
       setIsLoading(false);
     }
@@ -104,6 +169,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isAuthenticated: !!user,
     isLoading,
     login,
+    loginWithGoogle: googleLogin,
     logout,
     register,
   };

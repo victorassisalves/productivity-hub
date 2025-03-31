@@ -504,31 +504,34 @@ export class FirestoreStorage implements IStorage {
       name: user.name,
       email: user.email,
       username: user.username,
-      password: hashedPassword,
+      passwordHash: hashedPassword,
       createdAt: new Date(),
       avatar: user.avatar || null,
-      preferences: user.preferences || null
+      role: user.role || "user",
+      lastLogin: null
     };
     
-    // Store user without the password in the newUser object
+    // Store user in Firestore
     await setDoc(
       doc(db, 'users', id.toString()),
       this.convertDatesToTimestamp(newUser)
     );
     
-    // Don't return the password
-    const { password, ...userWithoutPassword } = newUser;
-    return userWithoutPassword as User;
+    return newUser;
   }
 
-  async updateUser(id: number, userUpdate: Partial<User>): Promise<User | undefined> {
+  async updateUser(id: number, userUpdate: Partial<User> & { password?: string }): Promise<User | undefined> {
     const user = await this.getUser(id);
     if (!user) return undefined;
     
-    // If there's a password update, hash it
+    // Handle password update if provided
     if (userUpdate.password) {
       const saltRounds = 10;
-      userUpdate.password = await bcrypt.hash(userUpdate.password, saltRounds);
+      const passwordHash = await bcrypt.hash(userUpdate.password, saltRounds);
+      
+      // Replace password with passwordHash in the update
+      const { password, ...restUpdate } = userUpdate;
+      userUpdate = { ...restUpdate, passwordHash };
     }
     
     const updatedUser = { ...user, ...userUpdate };
@@ -537,9 +540,7 @@ export class FirestoreStorage implements IStorage {
       this.convertDatesToTimestamp(userUpdate)
     );
     
-    // Don't return the password
-    const { password, ...userWithoutPassword } = updatedUser;
-    return userWithoutPassword as User;
+    return updatedUser;
   }
 
   async deleteUser(id: number): Promise<boolean> {
@@ -554,14 +555,12 @@ export class FirestoreStorage implements IStorage {
 
   async verifyUserCredentials(email: string, password: string): Promise<User | null> {
     const user = await this.getUserByEmail(email);
-    if (!user || !user.password) return null;
+    if (!user || !user.passwordHash) return null;
     
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
     if (!isPasswordValid) return null;
     
-    // Don't return the password
-    const { password: _, ...userWithoutPassword } = user;
-    return userWithoutPassword as User;
+    return user;
   }
   
   // Team operations

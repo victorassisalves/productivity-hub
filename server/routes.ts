@@ -16,6 +16,28 @@ import {
 } from "@shared/schema";
 import { ZodError } from "zod";
 import bcrypt from 'bcrypt';
+import { getAuth } from 'firebase-admin/auth';
+import { initializeApp, cert } from 'firebase-admin/app';
+
+// Initialize Firebase Admin SDK
+try {
+  const FIREBASE_PROJECT_ID = process.env.FIREBASE_PROJECT_ID;
+  if (!FIREBASE_PROJECT_ID) {
+    console.warn("Firebase Project ID not found in environment variables");
+  } else {
+    initializeApp({
+      projectId: FIREBASE_PROJECT_ID,
+      credential: cert({
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+      }),
+    });
+    console.log("Firebase Admin SDK initialized successfully");
+  }
+} catch (error) {
+  console.error("Error initializing Firebase Admin SDK:", error);
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const router = express.Router();
@@ -656,6 +678,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
     req.session.userId = undefined;
     res.json({ success: true });
   });
+
+  // Firebase authentication endpoint
+  router.post("/auth/firebase-token", asyncHandler(async (req: Request, res: Response) => {
+    const { idToken } = req.body;
+    
+    if (!idToken) {
+      return res.status(400).json({ message: "Firebase ID token is required" });
+    }
+    
+    try {
+      // Verify the Firebase ID token
+      const auth = getAuth();
+      const decodedToken = await auth.verifyIdToken(idToken);
+      const uid = decodedToken.uid;
+      const email = decodedToken.email;
+      const name = decodedToken.name;
+      const picture = decodedToken.picture;
+      
+      if (!email) {
+        return res.status(400).json({ message: "Email is required from Firebase auth" });
+      }
+      
+      // Check if user exists in our database
+      let user = await storage.getUserByEmail(email);
+      
+      if (!user) {
+        // Create new user if they don't exist
+        const usernameBase = email.split('@')[0]; // Generate username from email
+        
+        // Check if username already exists
+        const existingUser = await storage.getUserByUsername(usernameBase);
+        const finalUsername = existingUser ? `${usernameBase}${Math.floor(Math.random() * 1000)}` : usernameBase;
+        
+        // Create the user with Firebase data
+        user = await storage.createUser({
+          email,
+          username: finalUsername,
+          name: name || finalUsername,
+          avatar: picture || null,
+          password: Math.random().toString(36).slice(-10), // Generate random password
+          firebaseUid: uid
+        });
+      } else if (!user.firebaseUid) {
+        // Update existing user with Firebase UID if they don't have one
+        user = await storage.updateUser(user.id, { firebaseUid: uid });
+      }
+      
+      if (!user) {
+        return res.status(500).json({ message: "Failed to create or retrieve user" });
+      }
+      
+      // Set user ID in session
+      if (req.session) {
+        req.session.userId = user.id;
+      }
+      
+      // Return user without password hash
+      if ('passwordHash' in user) {
+        const { passwordHash, ...safeUser } = user as any;
+        res.json(safeUser);
+      } else {
+        res.json(user);
+      }
+    } catch (error) {
+      console.error("Error verifying Firebase token:", error);
+      return res.status(401).json({ message: "Invalid Firebase token" });
+    }
+  }));
 
   // Register all routes with /api prefix
   app.use("/api", router);
