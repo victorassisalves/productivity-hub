@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { AddTaskDialog } from "@/components/tasks/add-task-dialog";
 import { Input } from "@/components/ui/input";
+import { UserDropdown } from "@/components/user-dropdown";
+import { Menu, Bell, HelpCircle } from "lucide-react";
 
 interface TopNavigationProps {
   onOpenMobileSidebar: () => void;
@@ -20,14 +22,27 @@ export function TopNavigation({ onOpenMobileSidebar }: TopNavigationProps) {
             onClick={onOpenMobileSidebar}
             className="text-gray-500 hover:text-gray-700"
           >
-            <span className="material-icons">menu</span>
+            <Menu className="h-5 w-5" />
           </Button>
-          <h1 className="ml-3 text-lg font-semibold text-gray-800">TaskFlow</h1>
+          <h1 className="ml-3 text-lg font-semibold text-gray-800">ProductivityHub</h1>
         </div>
         
         <div className="hidden md:block">
           <div className="relative">
-            <span className="material-icons absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">search</span>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
             <Input 
               type="text" 
               className="w-96 pl-10 pr-4 py-2" 
@@ -38,21 +53,14 @@ export function TopNavigation({ onOpenMobileSidebar }: TopNavigationProps) {
         
         <div className="flex items-center space-x-4">
           <Button variant="ghost" size="icon" className="text-gray-500 hover:text-primary-600 rounded-full">
-            <span className="material-icons">help_outline</span>
+            <HelpCircle className="h-5 w-5" />
           </Button>
           <Button variant="ghost" size="icon" className="text-gray-500 hover:text-primary-600 rounded-full">
-            <span className="material-icons">notifications</span>
+            <Bell className="h-5 w-5" />
           </Button>
           <div className="relative">
-            <Button variant="ghost" className="flex items-center">
-              <img 
-                className="h-8 w-8 rounded-full" 
-                src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" 
-                alt="User avatar" 
-              />
-              <span className="hidden md:block ml-2 text-sm font-medium text-gray-700">John Doe</span>
-              <span className="hidden md:block material-icons text-gray-400 text-sm ml-1">arrow_drop_down</span>
-            </Button>
+            {/* User dropdown replaces the static profile */}
+            <UserDropdown />
           </div>
         </div>
       </div>
