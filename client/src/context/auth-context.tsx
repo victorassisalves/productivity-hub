@@ -87,7 +87,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         description: "Welcome back!",
         variant: "default",
       });
-      return userCredential;
+      // Return void as per interface
     } catch (error: any) {
       console.error("Login error:", error);
       toast({
@@ -145,13 +145,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const loginWithGoogle = async () => {
     try {
       setIsLoading(true);
-      const result = await signInWithPopup(auth, googleProvider);
+      await signInWithPopup(auth, googleProvider);
       toast({
         title: "Logged in successfully",
         description: "Welcome to Productivity Hub!",
         variant: "default",
       });
-      return result;
+      // Return void as per interface
     } catch (error: any) {
       console.error("Google login error:", error);
       toast({

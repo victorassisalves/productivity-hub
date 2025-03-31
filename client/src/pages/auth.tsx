@@ -52,14 +52,14 @@ export default function AuthPage() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("login");
   const [, navigate] = useLocation();
-  const { login, register: registerUser, loginWithGoogle, isAuthenticated } = useAuth();
+  const { login, register: registerUser, loginWithGoogle, user } = useAuth();
 
   // Handle authentication redirect using useEffect to avoid hook order issues
   useEffect(() => {
-    if (isAuthenticated) {
+    if (user) {
       navigate("/");
     }
-  }, [isAuthenticated, navigate]);
+  }, [user, navigate]);
 
   // Login form
   const loginForm = useForm<LoginFormValues>({
@@ -85,10 +85,10 @@ export default function AuthPage() {
   const onLoginSubmit = async (data: LoginFormValues) => {
     setIsLoading(true);
     try {
-      const success = await login(data.email, data.password);
-      if (success) {
-        navigate("/");
-      }
+      await login(data.email, data.password);
+      // Navigation will happen automatically in the useEffect when user is set
+    } catch (error) {
+      console.error("Login error:", error);
     } finally {
       setIsLoading(false);
     }
@@ -97,11 +97,11 @@ export default function AuthPage() {
   const onRegisterSubmit = async (data: RegisterFormValues) => {
     setIsLoading(true);
     try {
-      const success = await registerUser(data);
-      if (success) {
-        setActiveTab("login");
-        registerForm.reset();
-      }
+      await registerUser(data.email, data.password, data.name);
+      setActiveTab("login");
+      registerForm.reset();
+    } catch (error) {
+      console.error("Registration error:", error);
     } finally {
       setIsLoading(false);
     }
@@ -190,10 +190,10 @@ export default function AuthPage() {
                 onClick={async () => {
                   try {
                     setGoogleLoading(true);
-                    const success = await loginWithGoogle();
-                    if (success) {
-                      navigate("/");
-                    }
+                    await loginWithGoogle();
+                    // Navigation will happen automatically in the useEffect when user is set
+                  } catch (error) {
+                    console.error("Google login error:", error);
                   } finally {
                     setGoogleLoading(false);
                   }
@@ -323,10 +323,10 @@ export default function AuthPage() {
                 onClick={async () => {
                   try {
                     setGoogleLoading(true);
-                    const success = await loginWithGoogle();
-                    if (success) {
-                      navigate("/");
-                    }
+                    await loginWithGoogle();
+                    // Navigation will happen automatically in the useEffect when user is set
+                  } catch (error) {
+                    console.error("Google login error:", error);
                   } finally {
                     setGoogleLoading(false);
                   }
