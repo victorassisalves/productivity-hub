@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/app-layout";
 import { Button } from "@/components/ui/button";
@@ -6,14 +6,42 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { AddProjectDialog } from "@/components/projects/add-project-dialog";
 import { Project } from "@shared/schema";
 import { Link } from "wouter";
+import { queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ProjectsPage() {
   const [isAddProjectOpen, setIsAddProjectOpen] = useState(false);
+  const { toast } = useToast();
   
   // Fetch projects
-  const { data: projects = [], isLoading } = useQuery<Project[]>({
+  const { 
+    data: projects = [], 
+    isLoading,
+    isError,
+    error,
+    refetch 
+  } = useQuery<Project[]>({
     queryKey: ["/api/projects"],
   });
+  
+  // Force refetch when component mounts or dialog closes
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        await refetch();
+        console.log("Projects fetched:", projects);
+      } catch (err) {
+        console.error("Error fetching projects:", err);
+        toast({
+          title: "Failed to load projects",
+          description: "Please try again later",
+          variant: "destructive",
+        });
+      }
+    };
+    
+    fetchProjects();
+  }, [isAddProjectOpen]);
 
   return (
     <AppLayout

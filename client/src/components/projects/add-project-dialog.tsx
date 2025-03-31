@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { insertProjectSchema, type InsertProject } from "@shared/schema";
+import { useToast } from "@/hooks/use-toast";
 
 interface AddProjectDialogProps {
   open: boolean;
@@ -46,17 +47,39 @@ export function AddProjectDialog({ open, onOpenChange }: AddProjectDialogProps) 
     },
   });
 
+  // Use toast notifications
+  const { toast } = useToast();
+  
   // Create project mutation
   const createProjectMutation = useMutation({
     mutationFn: async (data: FormValues) => {
       const response = await apiRequest("POST", "/api/projects", data);
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Force invalidate the projects query to refresh the list
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      queryClient.refetchQueries({ queryKey: ["/api/projects"] });
+      
+      // Show success toast
+      toast({
+        title: "Project created",
+        description: `${data.name} has been created successfully`,
+        variant: "default",
+      });
+      
+      // Reset form and close dialog
       form.reset();
       onOpenChange(false);
     },
+    onError: (error) => {
+      console.error("Error creating project:", error);
+      toast({
+        title: "Failed to create project",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    }
   });
 
   function onSubmit(data: FormValues) {
