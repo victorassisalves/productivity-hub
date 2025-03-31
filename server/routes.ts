@@ -16,26 +16,7 @@ import {
 } from "@shared/schema";
 import { ZodError } from "zod";
 import bcrypt from 'bcrypt';
-import { getAuth } from 'firebase-admin/auth';
-import { initializeApp, cert } from 'firebase-admin/app';
-
-// Initialize Firebase Admin SDK
-try {
-  const FIREBASE_PROJECT_ID = process.env.FIREBASE_PROJECT_ID;
-  
-  if (!FIREBASE_PROJECT_ID) {
-    console.warn("Firebase Project ID not found in environment variables");
-  } else {
-    // For development purposes, we'll use a simple initialization without service account
-    // In production, replace this with proper credentials
-    initializeApp({
-      projectId: FIREBASE_PROJECT_ID
-    });
-    console.log("Firebase Admin SDK initialized with app-only credentials");
-  }
-} catch (error) {
-  console.error("Error initializing Firebase Admin SDK:", error);
-}
+import { adminAuth } from './firebase';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const router = express.Router();

@@ -1,7 +1,6 @@
 import { 
-  collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, 
-  query, where, serverTimestamp, Timestamp
-} from 'firebase/firestore';
+  FieldValue, Timestamp 
+} from 'firebase-admin/firestore';
 import { db } from './firebase';
 import { compareDesc } from 'date-fns';
 import type { 
@@ -23,8 +22,8 @@ import bcrypt from 'bcrypt';
 export class FirestoreStorage implements IStorage {
   // Helper functions for Firestore
   private async getCollectionData<T>(collectionName: string): Promise<T[]> {
-    const querySnapshot = await getDocs(collection(db, collectionName));
-    return querySnapshot.docs.map(doc => {
+    const snapshot = await db.collection(collectionName).get();
+    return snapshot.docs.map(doc => {
       const data = doc.data();
       
       // Convert Firestore timestamps to Date objects
@@ -42,10 +41,10 @@ export class FirestoreStorage implements IStorage {
   }
 
   private async getDocumentData<T>(collectionName: string, id: number): Promise<T | undefined> {
-    const docRef = doc(db, collectionName, id.toString());
-    const docSnap = await getDoc(docRef);
+    const docRef = db.collection(collectionName).doc(id.toString());
+    const docSnap = await docRef.get();
     
-    if (!docSnap.exists()) return undefined;
+    if (!docSnap.exists) return undefined;
     
     const data = docSnap.data();
     
@@ -75,8 +74,8 @@ export class FirestoreStorage implements IStorage {
   }
 
   private async getNextId(collectionName: string): Promise<number> {
-    const querySnapshot = await getDocs(collection(db, collectionName));
-    const ids = querySnapshot.docs.map(doc => parseInt(doc.id, 10) || 0);
+    const snapshot = await db.collection(collectionName).get();
+    const ids = snapshot.docs.map(doc => parseInt(doc.id, 10) || 0);
     return ids.length > 0 ? Math.max(...ids) + 1 : 1;
   }
 
@@ -102,10 +101,8 @@ export class FirestoreStorage implements IStorage {
       tags: task.tags || []
     };
     
-    await setDoc(
-      doc(db, 'tasks', id.toString()), 
-      this.convertDatesToTimestamp(newTask)
-    );
+    await db.collection('tasks').doc(id.toString())
+      .set(this.convertDatesToTimestamp(newTask));
     
     return newTask;
   }
@@ -115,17 +112,15 @@ export class FirestoreStorage implements IStorage {
     if (!task) return undefined;
     
     const updatedTask = { ...task, ...taskUpdate };
-    await updateDoc(
-      doc(db, 'tasks', id.toString()), 
-      this.convertDatesToTimestamp(taskUpdate)
-    );
+    await db.collection('tasks').doc(id.toString())
+      .update(this.convertDatesToTimestamp(taskUpdate));
     
     return updatedTask;
   }
 
   async deleteTask(id: number): Promise<boolean> {
     try {
-      await deleteDoc(doc(db, 'tasks', id.toString()));
+      await db.collection('tasks').doc(id.toString()).delete();
       return true;
     } catch (error) {
       console.error(`Error deleting task ${id}:`, error);
@@ -134,10 +129,9 @@ export class FirestoreStorage implements IStorage {
   }
 
   async getTasksByStatus(status: string): Promise<Task[]> {
-    const q = query(collection(db, 'tasks'), where('status', '==', status));
-    const querySnapshot = await getDocs(q);
+    const snapshot = await db.collection('tasks').where('status', '==', status).get();
     
-    return querySnapshot.docs.map(doc => {
+    return snapshot.docs.map(doc => {
       const data = doc.data();
       
       // Convert Firestore timestamps to Date objects
@@ -155,10 +149,9 @@ export class FirestoreStorage implements IStorage {
   }
 
   async getTasksByProject(projectId: number): Promise<Task[]> {
-    const q = query(collection(db, 'tasks'), where('projectId', '==', projectId));
-    const querySnapshot = await getDocs(q);
+    const snapshot = await db.collection('tasks').where('projectId', '==', projectId).get();
     
-    return querySnapshot.docs.map(doc => {
+    return snapshot.docs.map(doc => {
       const data = doc.data();
       
       // Convert Firestore timestamps to Date objects
@@ -176,10 +169,9 @@ export class FirestoreStorage implements IStorage {
   }
 
   async getTasksByPriority(priority: string): Promise<Task[]> {
-    const q = query(collection(db, 'tasks'), where('priority', '==', priority));
-    const querySnapshot = await getDocs(q);
+    const snapshot = await db.collection('tasks').where('priority', '==', priority).get();
     
-    return querySnapshot.docs.map(doc => {
+    return snapshot.docs.map(doc => {
       const data = doc.data();
       
       // Convert Firestore timestamps to Date objects
@@ -290,10 +282,9 @@ export class FirestoreStorage implements IStorage {
   }
 
   async getSessionsByTask(taskId: number): Promise<PomodoroSession[]> {
-    const q = query(collection(db, 'pomodoro_sessions'), where('taskId', '==', taskId));
-    const querySnapshot = await getDocs(q);
+    const snapshot = await db.collection('pomodoro_sessions').where('taskId', '==', taskId).get();
     
-    return querySnapshot.docs.map(doc => {
+    return snapshot.docs.map(doc => {
       const data = doc.data();
       
       // Convert Firestore timestamps to Date objects
@@ -438,12 +429,11 @@ export class FirestoreStorage implements IStorage {
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    const q = query(collection(db, 'users'), where('email', '==', email));
-    const querySnapshot = await getDocs(q);
+    const snapshot = await db.collection('users').where('email', '==', email).get();
     
-    if (querySnapshot.empty) return undefined;
+    if (snapshot.empty) return undefined;
     
-    const doc = querySnapshot.docs[0];
+    const doc = snapshot.docs[0];
     const data = doc.data();
     
     // Convert Firestore timestamps to Date objects
@@ -460,12 +450,11 @@ export class FirestoreStorage implements IStorage {
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const q = query(collection(db, 'users'), where('username', '==', username));
-    const querySnapshot = await getDocs(q);
+    const snapshot = await db.collection('users').where('username', '==', username).get();
     
-    if (querySnapshot.empty) return undefined;
+    if (snapshot.empty) return undefined;
     
-    const doc = querySnapshot.docs[0];
+    const doc = snapshot.docs[0];
     const data = doc.data();
     
     // Convert Firestore timestamps to Date objects
@@ -508,14 +497,13 @@ export class FirestoreStorage implements IStorage {
       createdAt: new Date(),
       avatar: user.avatar || null,
       role: user.role || "user",
-      lastLogin: null
+      lastLogin: null,
+      firebaseUid: user.firebaseUid || null
     };
     
     // Store user in Firestore
-    await setDoc(
-      doc(db, 'users', id.toString()),
-      this.convertDatesToTimestamp(newUser)
-    );
+    await db.collection('users').doc(id.toString())
+      .set(this.convertDatesToTimestamp(newUser));
     
     return newUser;
   }
@@ -647,10 +635,9 @@ export class FirestoreStorage implements IStorage {
   
   // Team member operations
   async getTeamMembers(teamId: number): Promise<TeamMember[]> {
-    const q = query(collection(db, 'team_members'), where('teamId', '==', teamId));
-    const querySnapshot = await getDocs(q);
+    const snapshot = await db.collection('team_members').where('teamId', '==', teamId).get();
     
-    return querySnapshot.docs.map(doc => {
+    return snapshot.docs.map(doc => {
       const data = doc.data();
       
       // Convert Firestore timestamps to Date objects
@@ -713,10 +700,9 @@ export class FirestoreStorage implements IStorage {
   }
 
   async getTeamMembershipByUser(userId: number): Promise<TeamMember[]> {
-    const q = query(collection(db, 'team_members'), where('userId', '==', userId));
-    const querySnapshot = await getDocs(q);
+    const snapshot = await db.collection('team_members').where('userId', '==', userId).get();
     
-    return querySnapshot.docs.map(doc => {
+    return snapshot.docs.map(doc => {
       const data = doc.data();
       
       // Convert Firestore timestamps to Date objects
@@ -735,10 +721,9 @@ export class FirestoreStorage implements IStorage {
   
   // Collaborative project operations
   async getCollaborativeProjects(teamId: number): Promise<CollaborativeProject[]> {
-    const q = query(collection(db, 'collaborative_projects'), where('teamId', '==', teamId));
-    const querySnapshot = await getDocs(q);
+    const snapshot = await db.collection('collaborative_projects').where('teamId', '==', teamId).get();
     
-    return querySnapshot.docs.map(doc => {
+    return snapshot.docs.map(doc => {
       const data = doc.data();
       
       // Convert Firestore timestamps to Date objects
@@ -805,10 +790,9 @@ export class FirestoreStorage implements IStorage {
   
   // Task assignment operations
   async getTaskAssignments(taskId: number): Promise<TaskAssignment[]> {
-    const q = query(collection(db, 'task_assignments'), where('taskId', '==', taskId));
-    const querySnapshot = await getDocs(q);
+    const snapshot = await db.collection('task_assignments').where('taskId', '==', taskId).get();
     
-    return querySnapshot.docs.map(doc => {
+    return snapshot.docs.map(doc => {
       const data = doc.data();
       
       // Convert Firestore timestamps to Date objects
@@ -872,10 +856,9 @@ export class FirestoreStorage implements IStorage {
   }
 
   async getTasksByAssignee(userId: number): Promise<Task[]> {
-    const q = query(collection(db, 'task_assignments'), where('userId', '==', userId));
-    const querySnapshot = await getDocs(q);
+    const snapshot = await db.collection('task_assignments').where('userId', '==', userId).get();
     
-    const taskIds = querySnapshot.docs.map(doc => doc.data().taskId);
+    const taskIds = snapshot.docs.map(doc => doc.data().taskId);
     const tasks: Task[] = [];
     
     for (const taskId of taskIds) {
@@ -891,10 +874,9 @@ export class FirestoreStorage implements IStorage {
   // Activity log operations
   async getActivityLogs(teamId?: number): Promise<ActivityLog[]> {
     if (teamId) {
-      const q = query(collection(db, 'activity_logs'), where('teamId', '==', teamId));
-      const querySnapshot = await getDocs(q);
+      const snapshot = await db.collection('activity_logs').where('teamId', '==', teamId).get();
       
-      const logs = querySnapshot.docs.map(doc => {
+      const logs = snapshot.docs.map(doc => {
         const data = doc.data();
         
         // Convert Firestore timestamps to Date objects
@@ -950,10 +932,9 @@ export class FirestoreStorage implements IStorage {
   }
 
   async getActivityLogsByUser(userId: number): Promise<ActivityLog[]> {
-    const q = query(collection(db, 'activity_logs'), where('userId', '==', userId));
-    const querySnapshot = await getDocs(q);
+    const snapshot = await db.collection('activity_logs').where('userId', '==', userId).get();
     
-    const logs = querySnapshot.docs.map(doc => {
+    const logs = snapshot.docs.map(doc => {
       const data = doc.data();
       
       // Convert Firestore timestamps to Date objects
@@ -976,10 +957,9 @@ export class FirestoreStorage implements IStorage {
   }
 
   async getActivityLogsByProject(projectId: number): Promise<ActivityLog[]> {
-    const q = query(collection(db, 'activity_logs'), where('projectId', '==', projectId));
-    const querySnapshot = await getDocs(q);
+    const snapshot = await db.collection('activity_logs').where('projectId', '==', projectId).get();
     
-    const logs = querySnapshot.docs.map(doc => {
+    const logs = snapshot.docs.map(doc => {
       const data = doc.data();
       
       // Convert Firestore timestamps to Date objects
@@ -1002,10 +982,9 @@ export class FirestoreStorage implements IStorage {
   }
 
   async getActivityLogsByTask(taskId: number): Promise<ActivityLog[]> {
-    const q = query(collection(db, 'activity_logs'), where('taskId', '==', taskId));
-    const querySnapshot = await getDocs(q);
+    const snapshot = await db.collection('activity_logs').where('taskId', '==', taskId).get();
     
-    const logs = querySnapshot.docs.map(doc => {
+    const logs = snapshot.docs.map(doc => {
       const data = doc.data();
       
       // Convert Firestore timestamps to Date objects

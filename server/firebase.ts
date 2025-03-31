@@ -1,5 +1,5 @@
 import { initializeApp, cert } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getFirestore, Firestore } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
 import { initializeApp as initializeClientApp } from 'firebase/app';
 import { getAuth as getClientAuth } from 'firebase/auth';
@@ -24,21 +24,32 @@ const clientConfig = {
 // Initialize Firebase Admin
 let app;
 let adminAuth;
-let db;
+let db: Firestore;
 
 try {
-  // Initialize with application default credentials
-  app = initializeApp(adminConfig);
+  // Initialize Firebase Admin only once
+  if (!global.firebaseAdminApp) {
+    // Initialize with application default credentials
+    global.firebaseAdminApp = initializeApp(adminConfig);
+    console.log('Firebase Admin initialized successfully');
+  }
+  
+  app = global.firebaseAdminApp;
   adminAuth = getAuth(app);
   db = getFirestore(app);
-  console.log('Firebase Admin initialized successfully');
 } catch (error) {
   console.error('Firebase Admin initialization error:', error);
   throw error;
 }
 
 // Also initialize client app for auth verification
-const clientApp = initializeClientApp(clientConfig);
+let clientApp;
+if (!global.firebaseClientApp) {
+  global.firebaseClientApp = initializeClientApp(clientConfig);
+}
+clientApp = global.firebaseClientApp;
 const auth = getClientAuth(clientApp);
+
+console.log('Firebase and Firestore initialized successfully');
 
 export { app, db, adminAuth, auth };
