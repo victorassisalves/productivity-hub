@@ -9,7 +9,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { TASK_PRIORITIES, TASK_STATUSES } from "@/lib/constants";
+
+// Define priorities and statuses directly since there's an issue with the constants
+const TASK_PRIORITIES_MAP = {
+  low: "Low",
+  medium: "Medium",
+  high: "High",
+  urgent: "Urgent"
+};
+
+const TASK_STATUSES_MAP = {
+  todo: "To Do",
+  in_progress: "In Progress",
+  review: "Review",
+  done: "Done"
+};
 
 interface TaskFilterProps {
   tasks: Task[];
@@ -18,7 +32,7 @@ interface TaskFilterProps {
 
 export function TaskFilter({ tasks, onChange }: TaskFilterProps) {
   const [searchTerm, setSearchTerm] = React.useState("");
-  const [priorityFilter, setPriorityFilter] = React.useState<string>("");
+  const [priorityFilter, setPriorityFilter] = React.useState<string>("all");
   const [sortBy, setSortBy] = React.useState<string>("dueDate");
   const [sortOrder, setSortOrder] = React.useState<"asc" | "desc">("asc");
 
@@ -48,7 +62,7 @@ export function TaskFilter({ tasks, onChange }: TaskFilterProps) {
     }
 
     // Priority filter
-    if (priorityFilter) {
+    if (priorityFilter && priorityFilter !== "all") {
       filtered = filtered.filter((task) => task.priority === priorityFilter);
     }
 
@@ -59,26 +73,28 @@ export function TaskFilter({ tasks, onChange }: TaskFilterProps) {
           ? a.title.localeCompare(b.title)
           : b.title.localeCompare(a.title);
       } else if (sortBy === "priority") {
-        const priorityOrder = {
-          [TASK_PRIORITIES.HIGH]: 3,
-          [TASK_PRIORITIES.MEDIUM]: 2,
-          [TASK_PRIORITIES.LOW]: 1,
+        const priorityOrder: {[key: string]: number} = {
+          "high": 3,
+          "medium": 2,
+          "low": 1,
+          "urgent": 4
         };
-        const aPriority = priorityOrder[a.priority as keyof typeof priorityOrder] || 0;
-        const bPriority = priorityOrder[b.priority as keyof typeof priorityOrder] || 0;
+        const aPriority = priorityOrder[a.priority] || 0;
+        const bPriority = priorityOrder[b.priority] || 0;
         return sortOrder === "asc" ? aPriority - bPriority : bPriority - aPriority;
       } else if (sortBy === "dueDate") {
         const aDate = a.dueDate ? new Date(a.dueDate).getTime() : 0;
         const bDate = b.dueDate ? new Date(b.dueDate).getTime() : 0;
         return sortOrder === "asc" ? aDate - bDate : bDate - aDate;
       } else if (sortBy === "status") {
-        const statusOrder = {
-          [TASK_STATUSES.TODO]: 1,
-          [TASK_STATUSES.IN_PROGRESS]: 2,
-          [TASK_STATUSES.COMPLETED]: 3,
+        const statusOrder: {[key: string]: number} = {
+          "todo": 1,
+          "in_progress": 2,
+          "review": 3,
+          "done": 4
         };
-        const aStatus = statusOrder[a.status as keyof typeof statusOrder] || 0;
-        const bStatus = statusOrder[b.status as keyof typeof statusOrder] || 0;
+        const aStatus = statusOrder[a.status] || 0;
+        const bStatus = statusOrder[b.status] || 0;
         return sortOrder === "asc" ? aStatus - bStatus : bStatus - aStatus;
       }
       return 0;
@@ -90,7 +106,7 @@ export function TaskFilter({ tasks, onChange }: TaskFilterProps) {
   // Reset all filters
   const resetFilters = () => {
     setSearchTerm("");
-    setPriorityFilter("");
+    setPriorityFilter("all");
     setSortBy("dueDate");
     setSortOrder("asc");
     onChange(tasks);
@@ -123,10 +139,10 @@ export function TaskFilter({ tasks, onChange }: TaskFilterProps) {
               <SelectValue placeholder="Priority" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Priorities</SelectItem>
-              {Object.values(TASK_PRIORITIES).map((priority) => (
-                <SelectItem key={priority} value={priority}>
-                  {priority.charAt(0).toUpperCase() + priority.slice(1)}
+              <SelectItem value="all">All Priorities</SelectItem>
+              {Object.entries(TASK_PRIORITIES_MAP).map(([key, name]) => (
+                <SelectItem key={key} value={key}>
+                  {name}
                 </SelectItem>
               ))}
             </SelectContent>

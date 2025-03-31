@@ -1,81 +1,115 @@
+import { useState, useEffect } from "react";
+import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { insertTaskSchema } from "@shared/schema";
-import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
-import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Project } from "@shared/schema";
-import { TASK_PRIORITIES, TASK_STATUSES } from "@/lib/constants";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { useLocation } from "wouter";
+import { Calendar as CalendarIcon } from "lucide-react";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { insertTaskSchema, type InsertTask, type Task, type Project } from "@shared/schema";
+import { useToast } from "@/hooks/use-toast";
 
 interface AddTaskDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  defaultStatus?: string;
+  projectId?: number | null;
 }
 
 // Extend the task schema for form validation
 const formSchema = insertTaskSchema.extend({
-  dueDate: z.string().optional(),
-  // Add coercion for projectId to handle string -> number conversion
-  projectId: z.string().transform(val => val ? Number(val) : undefined).optional(),
+  projectId: z.number().nullable().optional(),
+  dueDate: z.date().nullable().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
-export function AddTaskDialog({ open, onOpenChange, defaultStatus = TASK_STATUSES[0].id }: AddTaskDialogProps) {
-  // Fetch projects for project selection
+export function AddTaskDialog({ open, onOpenChange, projectId }: AddTaskDialogProps) {
+  const { toast } = useToast();
+  
+  // Get projects for the project selection dropdown
   const { data: projects = [] } = useQuery<Project[]>({
     queryKey: ["/api/projects"],
   });
   
-  // For navigation
-  const [, navigate] = useLocation();
-
-  // Set up form
+  // Set up form with default values
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: "",
       description: "",
-      projectId: undefined,
-      status: defaultStatus,
-      priority: TASK_PRIORITIES[1].id, // MEDIUM
-      dueDate: format(new Date(), "yyyy-MM-dd"),
+      status: "todo",
+      priority: "medium",
+      projectId: projectId || null,
+      dueDate: null,
       progress: 0,
+      completed: false,
     },
   });
-
+  
+  // Update projectId when the prop changes
+  useEffect(() => {
+    if (projectId) {
+      form.setValue("projectId", projectId);
+    }
+  }, [projectId, form]);
+  
   // Create task mutation
   const createTaskMutation = useMutation({
     mutationFn: async (data: FormValues) => {
-      // Convert dueDate from string to Date if it exists
-      const formattedData = {
-        ...data,
-        dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
-        // The projectId is already converted to a number by the schema
-      };
-      return await apiRequest("POST", "/api/tasks", formattedData);
+      const response = await apiRequest("POST", "/api/tasks", data);
+      return response.json();
     },
-    onSuccess: async (response) => {
+    onSuccess: (data) => {
+      // Force invalidate the queries to refresh the lists
       queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
+      queryClient.refetchQueries({ queryKey: ["/api/tasks"] });
+      
+      if (data.projectId) {
+        queryClient.invalidateQueries({ queryKey: [`/api/projects/${data.projectId}`] });
+      }
+      
+      // Show success toast
+      toast({
+        title: "Task created",
+        description: `${data.title} has been created successfully`,
+        variant: "default",
+      });
       
       // Reset form and close dialog
       form.reset();
       onOpenChange(false);
-      
-      // Parse response and navigate if we have a task
-      const task = response ? response.json ? await response.json() : response : null;
-      if (task && task.id) {
-        navigate(`/tasks/${task.id}`);
-      }
     },
+    onError: (error) => {
+      console.error("Error creating task:", error);
+      toast({
+        title: "Failed to create task",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    }
   });
 
   function onSubmit(data: FormValues) {
@@ -84,7 +118,7 @@ export function AddTaskDialog({ open, onOpenChange, defaultStatus = TASK_STATUSE
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[550px]">
         <DialogHeader>
           <DialogTitle className="text-lg font-medium text-gray-900">Add New Task</DialogTitle>
           <DialogDescription>
@@ -115,7 +149,11 @@ export function AddTaskDialog({ open, onOpenChange, defaultStatus = TASK_STATUSE
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Enter task description" {...field} value={field.value || ""} />
+                    <Textarea 
+                      placeholder="Enter task description" 
+                      {...field} 
+                      value={field.value || ""}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -125,23 +163,26 @@ export function AddTaskDialog({ open, onOpenChange, defaultStatus = TASK_STATUSE
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="projectId"
+                name="status"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Project</FormLabel>
-                    <FormControl>
-                      <select
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        {...field}
-                      >
-                        <option value="">Select a project</option>
-                        {projects.map((project) => (
-                          <option key={project.id} value={project.id}>
-                            {project.name}
-                          </option>
-                        ))}
-                      </select>
-                    </FormControl>
+                    <FormLabel>Status</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="todo">To Do</SelectItem>
+                        <SelectItem value="in_progress">In Progress</SelectItem>
+                        <SelectItem value="review">Review</SelectItem>
+                        <SelectItem value="done">Done</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -153,17 +194,22 @@ export function AddTaskDialog({ open, onOpenChange, defaultStatus = TASK_STATUSE
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Priority</FormLabel>
-                    <FormControl>
-                      <select
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        {...field}
-                      >
-                        <option value={TASK_PRIORITIES[0].id}>Low</option>
-                        <option value={TASK_PRIORITIES[1].id}>Medium</option>
-                        <option value={TASK_PRIORITIES[2].id}>High</option>
-                        <option value={TASK_PRIORITIES[3].id}>Urgent</option>
-                      </select>
-                    </FormControl>
+                    <Select 
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select priority" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="low">Low</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                        <SelectItem value="urgent">Urgent</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -173,13 +219,34 @@ export function AddTaskDialog({ open, onOpenChange, defaultStatus = TASK_STATUSE
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="dueDate"
+                name="projectId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Due Date</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
+                    <FormLabel>Project</FormLabel>
+                    <Select 
+                      onValueChange={(value) => {
+                        if (value === "0") {
+                          field.onChange(null);
+                        } else {
+                          field.onChange(parseInt(value));
+                        }
+                      }}
+                      defaultValue={field.value ? field.value.toString() : "0"}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select project" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="0">No Project</SelectItem>
+                        {projects.map((project) => (
+                          <SelectItem key={project.id} value={project.id.toString()}>
+                            {project.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -187,20 +254,38 @@ export function AddTaskDialog({ open, onOpenChange, defaultStatus = TASK_STATUSE
               
               <FormField
                 control={form.control}
-                name="status"
+                name="dueDate"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Status</FormLabel>
-                    <FormControl>
-                      <select
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        {...field}
-                      >
-                        <option value={TASK_STATUSES[0].id}>To Do</option>
-                        <option value={TASK_STATUSES[1].id}>In Progress</option>
-                        <option value={TASK_STATUSES[2].id}>Completed</option>
-                      </select>
-                    </FormControl>
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Due Date</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, "PPP")
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value || undefined}
+                          onSelect={field.onChange}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
                     <FormMessage />
                   </FormItem>
                 )}

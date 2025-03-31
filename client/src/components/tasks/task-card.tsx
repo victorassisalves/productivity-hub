@@ -1,231 +1,160 @@
-import { Task, Project } from "@shared/schema";
-import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { queryClient, apiRequest } from "@/lib/queryClient";
-import { TASK_PRIORITIES, PRIORITY_COLORS, TASK_STATUSES, STATUS_COLORS } from "@/lib/constants";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { Task, Project } from "@shared/schema";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { CalendarDays, Clock, CheckCircle2 } from "lucide-react";
 import { format } from "date-fns";
-import { cn } from "@/lib/utils";
-import { EditTaskDialog } from "./edit-task-dialog";
 
 interface TaskCardProps {
   task: Task;
+  project?: Project | null;
+  onEdit?: () => void;
 }
 
-export function TaskCard({ task }: TaskCardProps) {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-
-  // Fetch project info if task has a project
-  const { data: projects = [] } = useQuery<Project[]>({
-    queryKey: ["/api/projects"],
-    enabled: !!task.projectId,
-  });
-
-  const project = task.projectId ? projects.find(p => p.id === task.projectId) : undefined;
-
-  // Delete task mutation
-  const deleteTaskMutation = useMutation({
+export function TaskCard({ task, project, onEdit }: TaskCardProps) {
+  const { toast } = useToast();
+  const [isCompleting, setIsCompleting] = useState(false);
+  
+  // Toggle task completion status mutation
+  const toggleCompleteMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest("DELETE", `/api/tasks/${task.id}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
-    },
-  });
-
-  // Update task progress mutation
-  const updateTaskMutation = useMutation({
-    mutationFn: async (updates: Partial<Task>) => {
-      const response = await apiRequest("PUT", `/api/tasks/${task.id}`, updates);
+      const response = await apiRequest("PATCH", `/api/tasks/${task.id}`, { 
+        completed: !task.completed 
+      });
       return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
+    onMutate: () => {
+      setIsCompleting(true);
     },
+    onSuccess: () => {
+      // Invalidate and refetch relevant queries
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
+      if (task.projectId) {
+        queryClient.invalidateQueries({ queryKey: [`/api/projects/${task.projectId}/tasks`] });
+      }
+      
+      toast({
+        title: task.completed ? "Task marked as incomplete" : "Task marked as complete",
+        variant: "default",
+      });
+    },
+    onError: (error) => {
+      console.error("Error toggling task completion:", error);
+      toast({
+        title: "Failed to update task",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    },
+    onSettled: () => {
+      setIsCompleting(false);
+    }
   });
 
-  // Mark task as completed
-  const markAsCompleted = () => {
-    updateTaskMutation.mutate({ 
-      status: TASK_STATUSES.COMPLETED,
-      completed: true,
-      progress: 100 
-    });
-    setIsMenuOpen(false);
-  };
-
-  // Mark task as in progress
-  const markAsInProgress = () => {
-    updateTaskMutation.mutate({ 
-      status: TASK_STATUSES.IN_PROGRESS,
-      completed: false 
-    });
-    setIsMenuOpen(false);
-  };
-
-  // Toggle complete status
-  const toggleCompleted = () => {
-    if (task.status === TASK_STATUSES.COMPLETED) {
-      updateTaskMutation.mutate({ 
-        status: TASK_STATUSES.TODO,
-        completed: false,
-        progress: 0 
-      });
-    } else {
-      markAsCompleted();
+  // Map status to a color
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "todo": return "bg-slate-500";
+      case "in_progress": return "bg-blue-500";
+      case "review": return "bg-amber-500";
+      case "done": return "bg-green-500";
+      default: return "bg-slate-500";
     }
   };
 
-  // Format date
-  const formatDate = (date: Date | undefined) => {
-    if (!date) return 'No date';
-    return format(new Date(date), 'MMM d');
+  // Map priority to a color
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case "low": return "bg-slate-400";
+      case "medium": return "bg-blue-400";
+      case "high": return "bg-amber-400";
+      case "urgent": return "bg-red-500";
+      default: return "bg-slate-400";
+    }
+  };
+
+  // Format priority for display
+  const formatPriority = (priority: string) => {
+    return priority.charAt(0).toUpperCase() + priority.slice(1);
+  };
+
+  // Format status for display
+  const formatStatus = (status: string) => {
+    return status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
   };
 
   return (
-    <>
-      <div 
-        className={cn(
-          "bg-white p-4 rounded-lg shadow-sm mb-3 transition-all duration-200 hover:shadow-md",
-          task.status === TASK_STATUSES.COMPLETED ? "opacity-70" : "",
-          "hover:opacity-100 hover:-translate-y-1"
-        )}
-      >
+    <Card className={`w-full ${task.completed ? 'bg-gray-50' : ''}`}>
+      <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
-          <div className="flex items-center gap-2">
-            <div 
-              className="w-5 h-5 rounded-full border border-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-100"
-              onClick={toggleCompleted}
-            >
-              {task.status === TASK_STATUSES.COMPLETED && (
-                <span className="material-icons text-xs text-primary-600">check</span>
-              )}
-            </div>
-            <Badge className={PRIORITY_COLORS[task.priority || TASK_PRIORITIES.MEDIUM]}>
-              {task.priority?.charAt(0).toUpperCase() + task.priority?.slice(1)}
+          <CardTitle className={`text-lg ${task.completed ? 'line-through text-gray-500' : ''}`}>
+            {task.title}
+          </CardTitle>
+          <div className="flex gap-2">
+            <Badge className={getStatusColor(task.status)}>
+              {formatStatus(task.status)}
             </Badge>
-            {task.tags && task.tags.length > 0 && (
-              <div className="flex gap-1">
-                {task.tags.map((tag, index) => (
-                  <span 
-                    key={index}
-                    className="px-2 py-0.5 bg-gray-100 text-gray-700 text-xs rounded-full"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-          <div className="relative">
-            <button
-              className="text-gray-400 hover:text-gray-500"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-            >
-              <span className="material-icons text-sm">more_vert</span>
-            </button>
-            {isMenuOpen && (
-              <div className="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                <button
-                  className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
-                  onClick={() => {
-                    setIsEditDialogOpen(true);
-                    setIsMenuOpen(false);
-                  }}
-                >
-                  <span className="material-icons text-xs mr-2 align-middle">edit</span>
-                  Edit task
-                </button>
-                {task.status !== TASK_STATUSES.COMPLETED && (
-                  <button
-                    className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
-                    onClick={markAsCompleted}
-                  >
-                    <span className="material-icons text-xs mr-2 align-middle">check_circle</span>
-                    Mark as completed
-                  </button>
-                )}
-                {task.status !== TASK_STATUSES.IN_PROGRESS && task.status !== TASK_STATUSES.COMPLETED && (
-                  <button
-                    className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
-                    onClick={markAsInProgress}
-                  >
-                    <span className="material-icons text-xs mr-2 align-middle">pending</span>
-                    Mark as in progress
-                  </button>
-                )}
-                <button
-                  className="block w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-gray-100"
-                  onClick={() => {
-                    if (window.confirm("Are you sure you want to delete this task?")) {
-                      deleteTaskMutation.mutate();
-                    }
-                    setIsMenuOpen(false);
-                  }}
-                >
-                  <span className="material-icons text-xs mr-2 align-middle">delete</span>
-                  Delete
-                </button>
-              </div>
-            )}
+            <Badge className={getPriorityColor(task.priority)}>
+              {formatPriority(task.priority)}
+            </Badge>
           </div>
         </div>
-        <h4 className={cn(
-          "font-medium text-gray-900 mt-2",
-          task.status === TASK_STATUSES.COMPLETED ? "line-through text-gray-500" : ""
-        )}>
-          {task.title}
-        </h4>
-        {task.description && (
-          <p className="text-gray-500 text-sm mt-1">{task.description}</p>
+        {project && (
+          <Badge variant="outline" className="mt-1">
+            {project.name}
+          </Badge>
         )}
-        
-        {task.status === TASK_STATUSES.IN_PROGRESS && task.progress !== undefined && (
-          <div className="mt-3">
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
-                className="bg-primary-600 h-2 rounded-full" 
-                style={{ width: `${task.progress}%` }}
-              ></div>
+      </CardHeader>
+      
+      {task.description && (
+        <CardContent className="pb-2">
+          <p className={`text-sm text-gray-600 ${task.completed ? 'text-gray-400' : ''}`}>
+            {task.description}
+          </p>
+        </CardContent>
+      )}
+      
+      <CardFooter className="pt-0 flex justify-between items-center">
+        <div className="flex items-center gap-4 text-sm text-gray-500">
+          {task.dueDate && (
+            <div className="flex items-center gap-1">
+              <CalendarDays className="h-4 w-4" />
+              <span>{format(new Date(task.dueDate), 'MMM d, yyyy')}</span>
             </div>
-            <span className="text-xs text-gray-500 mt-1 inline-block">{task.progress}% complete</span>
-          </div>
-        )}
-        
-        <div className="mt-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center text-sm text-gray-500">
-              <span className="material-icons text-sm mr-1">calendar_today</span>
-              {task.dueDate ? formatDate(task.dueDate) : 'No date'}
-            </div>
-            <div className="flex items-center text-sm text-gray-500">
-              <span className="material-icons text-sm mr-1">label</span>
-              {task.status === TASK_STATUSES.COMPLETED ? 'Completed' : task.status.replace('_', ' ')}
-            </div>
-          </div>
-          
-          {project && (
-            <div 
-              className="px-2 py-1 rounded-md text-xs" 
-              style={{ 
-                backgroundColor: project.color ? `${project.color}20` : '#E5E7EB',
-                color: project.color || '#4B5563' 
-              }}
-            >
-              {project.name}
+          )}
+          {task.timeEstimate && (
+            <div className="flex items-center gap-1">
+              <Clock className="h-4 w-4" />
+              <span>{task.timeEstimate} min</span>
             </div>
           )}
         </div>
-      </div>
-      
-      {isEditDialogOpen && (
-        <EditTaskDialog
-          open={isEditDialogOpen}
-          onOpenChange={setIsEditDialogOpen}
-          task={task}
-        />
-      )}
-    </>
+        
+        <div className="flex gap-2">
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => toggleCompleteMutation.mutate()}
+            disabled={isCompleting}
+          >
+            <CheckCircle2 className={`mr-1 h-4 w-4 ${task.completed ? 'text-green-500' : 'text-gray-400'}`} />
+            {task.completed ? 'Completed' : 'Complete'}
+          </Button>
+          {onEdit && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onEdit}
+            >
+              Edit
+            </Button>
+          )}
+        </div>
+      </CardFooter>
+    </Card>
   );
 }

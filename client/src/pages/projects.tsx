@@ -1,16 +1,19 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/app-layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { AddProjectDialog } from "@/components/projects/add-project-dialog";
+import { EditProjectDialog } from "@/components/projects/edit-project-dialog";
 import { Project } from "@shared/schema";
-import { Link } from "wouter";
-import { queryClient } from "@/lib/queryClient";
+import { Link, useLocation } from "wouter";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 export default function ProjectsPage() {
   const [isAddProjectOpen, setIsAddProjectOpen] = useState(false);
+  const [editProjectId, setEditProjectId] = useState<number | null>(null);
+  const [location] = useLocation();
   const { toast } = useToast();
   
   // Fetch projects
@@ -41,7 +44,19 @@ export default function ProjectsPage() {
     };
     
     fetchProjects();
-  }, [isAddProjectOpen]);
+  }, [isAddProjectOpen, editProjectId]);
+  
+  // Handle project edit from URL
+  useEffect(() => {
+    // Check if URL contains edit path
+    const match = location.match(/\/projects\/(\d+)\/edit/);
+    if (match && match[1]) {
+      const projectId = parseInt(match[1], 10);
+      setEditProjectId(projectId);
+    } else {
+      setEditProjectId(null);
+    }
+  }, [location]);
 
   return (
     <AppLayout
@@ -91,24 +106,49 @@ export default function ProjectsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {projects.map((project) => (
-            <ProjectCard key={project.id} project={project} />
+            <ProjectCard 
+              key={project.id} 
+              project={project} 
+              onEdit={() => setEditProjectId(project.id)}
+            />
           ))}
         </div>
       )}
 
+      {/* Add Project Dialog */}
       <AddProjectDialog 
         open={isAddProjectOpen} 
         onOpenChange={setIsAddProjectOpen} 
       />
+      
+      {/* Edit Project Dialog */}
+      {editProjectId && (
+        <EditProjectDialog
+          open={editProjectId !== null}
+          onOpenChange={(open) => {
+            if (!open) {
+              setEditProjectId(null);
+              // Navigate back to projects page if on edit URL
+              if (location.includes('/edit')) {
+                window.history.pushState({}, '', '/projects');
+              }
+            }
+          }}
+          projectId={editProjectId}
+        />
+      )}
     </AppLayout>
   );
 }
 
 interface ProjectCardProps {
   project: Project;
+  onEdit?: () => void;
 }
 
-function ProjectCard({ project }: ProjectCardProps) {
+function ProjectCard({ project, onEdit }: ProjectCardProps) {
+  const { toast } = useToast();
+  
   // Get task count for this project
   const { data: tasks = [] } = useQuery<any[]>({
     queryKey: ["/api/tasks"],
@@ -116,6 +156,43 @@ function ProjectCard({ project }: ProjectCardProps) {
   
   const projectTasks = tasks.filter(task => task.projectId === project.id);
   const taskCount = projectTasks.length;
+  
+  // Delete project mutation
+  const deleteProjectMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("DELETE", `/api/projects/${project.id}`);
+      return response;
+    },
+    onSuccess: () => {
+      // Force invalidate the projects query to refresh the list
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      queryClient.refetchQueries({ queryKey: ["/api/projects"] });
+      
+      // Show success toast
+      toast({
+        title: "Project deleted",
+        description: `${project.name} has been deleted successfully`,
+        variant: "default",
+      });
+    },
+    onError: (error) => {
+      console.error("Error deleting project:", error);
+      toast({
+        title: "Failed to delete project",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (confirm(`Are you sure you want to delete "${project.name}"?`)) {
+      deleteProjectMutation.mutate();
+    }
+  };
 
   return (
     <Card className="overflow-hidden border border-gray-200 hover:shadow-md transition-shadow">
@@ -124,10 +201,27 @@ function ProjectCard({ project }: ProjectCardProps) {
         style={{ backgroundColor: project.color || '#6366f1' }}
       ></div>
       <CardHeader className="pb-2">
-        <CardTitle className="text-xl font-semibold">{project.name}</CardTitle>
-        <CardDescription className="line-clamp-1">
-          {project.description || "No description"}
-        </CardDescription>
+        <div className="flex justify-between items-start">
+          <div>
+            <CardTitle className="text-xl font-semibold">{project.name}</CardTitle>
+            <CardDescription className="line-clamp-1">
+              {project.description || "No description"}
+            </CardDescription>
+          </div>
+          <Button 
+            variant="ghost" 
+            size="icon"
+            className="text-gray-400 hover:text-red-500 h-8 w-8"
+            onClick={handleDelete}
+            disabled={deleteProjectMutation.isPending}
+          >
+            {deleteProjectMutation.isPending ? (
+              <span className="animate-spin">⟳</span>
+            ) : (
+              <span className="material-icons" style={{ fontSize: '18px' }}>delete</span>
+            )}
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="text-sm text-gray-500 mb-4">
@@ -143,6 +237,18 @@ function ProjectCard({ project }: ProjectCardProps) {
             View Details
           </Button>
         </Link>
+        <Button 
+          variant="secondary"
+          onClick={(e) => {
+            e.preventDefault();
+            if (onEdit) {
+              onEdit();
+            }
+          }}
+        >
+          <span className="material-icons mr-1 text-sm">edit</span>
+          Edit
+        </Button>
       </CardFooter>
     </Card>
   );
