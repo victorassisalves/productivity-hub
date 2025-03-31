@@ -26,7 +26,10 @@ export function getQueryFn({ on401 = "throw" }: GetQueryFnOptions = {}) {
     }
 
     const url = queryKey[0];
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      method: 'GET',
+      credentials: 'include'
+    });
 
     // Handle unauthorized access
     if (response.status === 401) {
