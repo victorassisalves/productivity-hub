@@ -1,58 +1,72 @@
-import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
 
-async function throwIfResNotOk(res: Response) {
-  if (!res.ok) {
-    const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
-  }
-}
-
-export async function apiRequest<T = any>(
-  endpoint: string,
-  options?: RequestInit
-): Promise<T> {
-  const res = await fetch(endpoint, {
-    ...options,
-    headers: {
-      ...options?.headers,
-      'Content-Type': 'application/json',
-    },
-    credentials: 'include',
-  });
-
-  await throwIfResNotOk(res);
-  return await res.json();
-}
-
-type UnauthorizedBehavior = "returnNull" | "throw";
-export const getQueryFn: <T>(options: {
-  on401: UnauthorizedBehavior;
-}) => QueryFunction<T> =
-  ({ on401: unauthorizedBehavior }) =>
-  async ({ queryKey }) => {
-    const res = await fetch(queryKey[0] as string, {
-      credentials: "include",
-    });
-
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      return null;
-    }
-
-    await throwIfResNotOk(res);
-    return await res.json();
-  };
-
+// Create a client
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      queryFn: getQueryFn({ on401: "throw" }),
-      refetchInterval: false,
       refetchOnWindowFocus: false,
-      staleTime: Infinity,
       retry: false,
-    },
-    mutations: {
-      retry: false,
+      staleTime: 60 * 1000, // 1 minute
     },
   },
 });
+
+// Options for handling unauthorized access
+type GetQueryFnOptions = {
+  on401?: "throw" | "returnNull";
+};
+
+// Default fetch function for React Query
+export function getQueryFn({ on401 = "throw" }: GetQueryFnOptions = {}) {
+  return async function queryFn({ queryKey }: { queryKey: unknown }) {
+    if (!Array.isArray(queryKey) || typeof queryKey[0] !== "string") {
+      throw new Error(
+        "Invalid queryKey. Expected first element to be a string URL."
+      );
+    }
+
+    const url = queryKey[0];
+    const response = await fetch(url);
+
+    // Handle unauthorized access
+    if (response.status === 401) {
+      if (on401 === "returnNull") return null;
+      throw new Error("Unauthorized");
+    }
+
+    // Handle other errors
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.statusText}`);
+    }
+
+    return response.json();
+  };
+}
+
+// Function for making API requests
+export async function apiRequest(
+  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE",
+  url: string,
+  data?: any
+) {
+  const options: RequestInit = {
+    method,
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+  };
+
+  if (data) {
+    options.body = JSON.stringify(data);
+  }
+
+  const response = await fetch(url, options);
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || response.statusText);
+  }
+
+  return response;
+}

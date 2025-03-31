@@ -1,13 +1,27 @@
-import { Link, useLocation } from "wouter";
 import { useState, useEffect } from "react";
+import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { useQuery } from "@tanstack/react-query";
-import { FRAMEWORKS } from "@/lib/constants";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { Project } from "@shared/schema";
-import { AddProjectDialog } from "@/components/projects/add-project-dialog";
-import { Logo, LogoWithText } from "@/components/ui/logo";
+import { FRAMEWORKS, SIDEBAR_ROUTES } from "@/lib/constants";
+import { useAuth } from "@/context/auth-context";
+import {
+  Home,
+  CheckSquare,
+  FolderKanban,
+  LayoutGrid,
+  Star,
+  X
+} from "lucide-react";
+
+// Map icon strings to Lucide React components
+const IconMap: Record<string, React.ReactNode> = {
+  Home: <Home className="h-5 w-5" />,
+  CheckSquare: <CheckSquare className="h-5 w-5" />,
+  FolderKanban: <FolderKanban className="h-5 w-5" />,
+  LayoutGrid: <LayoutGrid className="h-5 w-5" />
+};
 
 interface SidebarProps {
   isMobileOpen: boolean;
@@ -16,213 +30,95 @@ interface SidebarProps {
 
 export function Sidebar({ isMobileOpen, onMobileClose }: SidebarProps) {
   const [location] = useLocation();
-  const [isMounted, setIsMounted] = useState(false);
-  const [isAddProjectOpen, setIsAddProjectOpen] = useState(false);
-
+  const { user } = useAuth();
+  const [favoriteFrameworks, setFavoriteFrameworks] = useState<string[]>([]);
+  
+  // Simulate loading favorite frameworks from user settings
   useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  // Fetch projects
-  const { data: projects = [] } = useQuery<Project[]>({
-    queryKey: ["/api/projects"],
-  });
-
-  const sidebarContent = (
-    <div className="flex flex-col w-64 h-full bg-white border-r border-gray-200">
-      <div className="px-6 pt-6 pb-4">
-        <div className="flex items-center">
-          <Logo size="large" />
-          <span className="ml-2 font-semibold text-xl">
-            <span className="bg-gradient-to-r from-primary-600 to-primary-400 bg-clip-text text-transparent">
-              Productivity
-            </span>
-            <span>Hub</span>
-          </span>
-        </div>
-      </div>
-
-      <div className="flex-1 flex flex-col overflow-y-auto pt-2">
-        <nav className="flex-1 px-4 pb-4 space-y-1">
-          <Link href="/">
-            <div 
-              className={cn(
-                "group flex items-center px-2 py-2 text-sm font-medium rounded-md cursor-pointer",
-                location === "/" 
-                  ? "border-l-4 border-primary-600 bg-primary-50 text-primary-600" 
-                  : "text-gray-700 hover:bg-gray-50"
-              )}
-            >
-              <span className={cn(
-                "material-icons mr-3",
-                location === "/" ? "text-primary-600" : "text-gray-500"
-              )}>dashboard</span>
-              Dashboard
-            </div>
-          </Link>
-          
-          <Link href="/tasks">
-            <div 
-              className={cn(
-                "group flex items-center px-2 py-2 text-sm font-medium rounded-md cursor-pointer",
-                location === "/tasks" 
-                  ? "border-l-4 border-primary-600 bg-primary-50 text-primary-600" 
-                  : "text-gray-700 hover:bg-gray-50"
-              )}
-            >
-              <span className={cn(
-                "material-icons mr-3",
-                location === "/tasks" ? "text-primary-600" : "text-gray-500"
-              )}>assignment</span>
-              All Tasks
-            </div>
-          </Link>
-
-          <div>
-            <div className="flex items-center justify-between px-3 mt-4 mb-2">
-              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                Projects
-              </h3>
-              <Link href="/projects">
-                <div className="text-xs text-primary-600 hover:underline cursor-pointer">
-                  View All
-                </div>
-              </Link>
-            </div>
-            <div className="space-y-1">
-              <Link href="/projects">
-                <div className={cn(
-                  "group flex items-center px-2 py-2 text-sm font-medium rounded-md cursor-pointer",
-                  location === "/projects" 
-                    ? "border-l-4 border-primary-600 bg-primary-50 text-primary-600" 
-                    : "text-gray-700 hover:bg-gray-50"
-                )}>
-                  <span className={cn(
-                    "material-icons mr-3",
-                    location === "/projects" ? "text-primary-600" : "text-gray-500"
-                  )}>folder_special</span>
-                  All Projects
-                </div>
-              </Link>
-            </div>
-          </div>
-
-          <div>
-            <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mt-4 mb-2">
-              Frameworks
-            </h3>
-            <div className="space-y-1">
-              {FRAMEWORKS.map((framework) => (
-                <Link key={framework.id} href={framework.path}>
-                  <div 
-                    className={cn(
-                      "group flex items-center px-2 py-2 text-sm font-medium rounded-md cursor-pointer",
-                      location === framework.path 
-                        ? "border-l-4 border-primary-600 bg-primary-50 text-primary-600" 
-                        : "text-gray-700 hover:bg-gray-50"
-                    )}
-                  >
-                    <span className={cn(
-                      "material-icons mr-3",
-                      location === framework.path ? "text-primary-600" : "text-gray-500"
-                    )}>{framework.icon}</span>
-                    {framework.name}
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-          
-          {/* AI Assistant Section */}
-          <div>
-            <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mt-4 mb-2">
-              AI Assistant
-            </h3>
-            <div className="space-y-1">
-              <Link href="/ai-assistant">
-                <div 
-                  className={cn(
-                    "group flex items-center px-2 py-2 text-sm font-medium rounded-md cursor-pointer",
-                    location === "/ai-assistant" 
-                      ? "border-l-4 border-primary-600 bg-primary-50 text-primary-600" 
-                      : "text-gray-700 hover:bg-gray-50"
-                  )}
-                >
-                  <span className={cn(
-                    "material-icons mr-3",
-                    location === "/ai-assistant" ? "text-primary-600" : "text-gray-500"
-                  )}>auto_awesome</span>
-                  AI Suggestions
-                </div>
-              </Link>
-              <Link href="/ai-scheduler">
-                <div 
-                  className={cn(
-                    "group flex items-center px-2 py-2 text-sm font-medium rounded-md cursor-pointer",
-                    location === "/ai-scheduler" 
-                      ? "border-l-4 border-primary-600 bg-primary-50 text-primary-600" 
-                      : "text-gray-700 hover:bg-gray-50"
-                  )}
-                >
-                  <span className={cn(
-                    "material-icons mr-3",
-                    location === "/ai-scheduler" ? "text-primary-600" : "text-gray-500"
-                  )}>schedule</span>
-                  Schedule Optimizer
-                </div>
-              </Link>
-              <Link href="/ai-insights">
-                <div 
-                  className={cn(
-                    "group flex items-center px-2 py-2 text-sm font-medium rounded-md cursor-pointer",
-                    location === "/ai-insights" 
-                      ? "border-l-4 border-primary-600 bg-primary-50 text-primary-600" 
-                      : "text-gray-700 hover:bg-gray-50"
-                  )}
-                >
-                  <span className={cn(
-                    "material-icons mr-3",
-                    location === "/ai-insights" ? "text-primary-600" : "text-gray-500"
-                  )}>insights</span>
-                  Productivity Insights
-                </div>
-              </Link>
-            </div>
-          </div>
-        </nav>
-
-        <div className="p-4 border-t border-gray-200">
-          <Button className="w-full" onClick={() => setIsAddProjectOpen(true)}>
-            <span className="material-icons mr-2 text-sm">add</span>
-            New Project
-          </Button>
-        </div>
-      </div>
-    </div>
+    // In a real app, this would fetch from an API
+    // For now, we'll hardcode some favorites
+    setFavoriteFrameworks(["pomodoro", "eisenhower", "problemSolving"]);
+  }, [user]);
+  
+  // Get favorite frameworks data
+  const favorites = FRAMEWORKS.filter(
+    framework => favoriteFrameworks.includes(framework.id)
   );
 
-  // Return the appropriate sidebar based on screen size
-  return (
+  const sidebarContent = (
     <>
-      {/* Desktop sidebar */}
-      <div className="hidden md:flex md:flex-shrink-0">
-        {sidebarContent}
+      <div className="flex h-16 items-center border-b px-4">
+        <Link href="/" className="flex items-center gap-2">
+          <div className="rounded-md bg-primary p-1">
+            <Star className="h-6 w-6 text-primary-foreground" />
+          </div>
+          <span className="text-lg font-bold">Productivity Hub</span>
+        </Link>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute right-4 top-4 lg:hidden"
+          onClick={onMobileClose}
+        >
+          <X className="h-5 w-5" />
+        </Button>
       </div>
       
-      {/* Mobile sidebar */}
-      {isMounted && (
-        <Sheet open={isMobileOpen} onOpenChange={onMobileClose}>
-          <SheetContent side="left" className="p-0">
-            {sidebarContent}
-          </SheetContent>
-        </Sheet>
-      )}
+      <ScrollArea className="flex-1 px-2 py-4">
+        <nav className="grid gap-1">
+          {SIDEBAR_ROUTES.map((route) => (
+            <Link key={route.path} href={route.path}>
+              <Button
+                variant={location === route.path ? "secondary" : "ghost"}
+                className={cn("w-full justify-start gap-3", 
+                  location === route.path ? "font-medium" : "font-normal"
+                )}
+              >
+                {IconMap[route.icon]}
+                {route.name}
+              </Button>
+            </Link>
+          ))}
+          
+          {favorites.length > 0 && (
+            <>
+              <div className="my-2 px-2 py-1.5">
+                <div className="text-xs font-semibold text-muted-foreground">
+                  FAVORITE FRAMEWORKS
+                </div>
+              </div>
+              
+              {favorites.map((framework) => (
+                <Link key={framework.id} href={framework.path}>
+                  <Button
+                    variant={location === framework.path ? "secondary" : "ghost"}
+                    className={cn("w-full justify-start gap-3", 
+                      location === framework.path ? "font-medium" : "font-normal"
+                    )}
+                  >
+                    <framework.icon className="h-5 w-5" />
+                    {framework.name}
+                  </Button>
+                </Link>
+              ))}
+            </>
+          )}
+        </nav>
+      </ScrollArea>
+    </>
+  );
 
-      {/* Project Dialog */}
-      <AddProjectDialog 
-        open={isAddProjectOpen} 
-        onOpenChange={setIsAddProjectOpen} 
-      />
+  return (
+    <>
+      <aside className="hidden w-64 shrink-0 border-r lg:block">
+        <div className="flex h-full flex-col">{sidebarContent}</div>
+      </aside>
+      
+      <Sheet open={isMobileOpen} onOpenChange={(open) => !open && onMobileClose()}>
+        <SheetContent side="left" className="w-64 p-0" overlayProps={{ className: "lg:hidden" }}>
+          <div className="flex h-full flex-col">{sidebarContent}</div>
+        </SheetContent>
+      </Sheet>
     </>
   );
 }

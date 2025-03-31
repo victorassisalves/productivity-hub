@@ -13,6 +13,8 @@ import ProjectsPage from "@/pages/projects";
 import ProjectDetailPage from "@/pages/project-detail";
 import AllTasksPage from "@/pages/all-tasks";
 import AuthPage from "@/pages/auth";
+import FrameworksPage from "@/pages/frameworks";
+import ProblemSolvingPage from "@/pages/problem-solving";
 
 // Context providers
 import { ProjectProvider } from "@/context/project-context";
@@ -30,101 +32,25 @@ function Router() {
       <Route path="/auth" component={AuthPage} />
       
       {/* Protected Routes */}
-      <Route path="/">
-        {() => (
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        )}
-      </Route>
+      <ProtectedRoute path="/" component={Dashboard} />
+      <ProtectedRoute path="/projects" component={ProjectsPage} />
+      <ProtectedRoute path="/projects/:id" component={ProjectDetailPage} />
+      <ProtectedRoute path="/tasks" component={AllTasksPage} />
       
-      <Route path="/projects">
-        {() => (
-          <ProtectedRoute>
-            <ProjectsPage />
-          </ProtectedRoute>
-        )}
-      </Route>
+      {/* Frameworks and Problem Solving */}
+      <ProtectedRoute path="/frameworks" component={FrameworksPage} />
+      <ProtectedRoute path="/problem-solving" component={ProblemSolvingPage} />
       
-      <Route path="/projects/:id">
-        {(params) => (
-          <ProtectedRoute>
-            <ProjectDetailPage />
-          </ProtectedRoute>
-        )}
-      </Route>
+      {/* Individual Framework Pages */}
+      <ProtectedRoute path="/eisenhower" component={EisenhowerPage} />
+      <ProtectedRoute path="/pomodoro" component={PomodoroPage} />
+      <ProtectedRoute path="/time-blocking" component={TimeBlockingPage} />
+      <ProtectedRoute path="/smart-goals" component={SmartGoalsPage} />
+      <ProtectedRoute path="/focus-mode" component={FocusModePage} />
+      <ProtectedRoute path="/analytics" component={AnalyticsPage} />
+      <ProtectedRoute path="/gtd" component={GtdPage} />
       
-      <Route path="/tasks">
-        {() => (
-          <ProtectedRoute>
-            <AllTasksPage />
-          </ProtectedRoute>
-        )}
-      </Route>
-      
-      <Route path="/eisenhower">
-        {() => (
-          <ProtectedRoute>
-            <EisenhowerPage />
-          </ProtectedRoute>
-        )}
-      </Route>
-      
-      <Route path="/pomodoro">
-        {() => (
-          <ProtectedRoute>
-            <PomodoroPage />
-          </ProtectedRoute>
-        )}
-      </Route>
-      
-      <Route path="/time-blocking">
-        {() => (
-          <ProtectedRoute>
-            <TimeBlockingPage />
-          </ProtectedRoute>
-        )}
-      </Route>
-      
-      <Route path="/smart-goals">
-        {() => (
-          <ProtectedRoute>
-            <SmartGoalsPage />
-          </ProtectedRoute>
-        )}
-      </Route>
-      
-      <Route path="/focus-mode">
-        {() => (
-          <ProtectedRoute>
-            <FocusModePage />
-          </ProtectedRoute>
-        )}
-      </Route>
-      
-      <Route path="/analytics">
-        {() => (
-          <ProtectedRoute>
-            <AnalyticsPage />
-          </ProtectedRoute>
-        )}
-      </Route>
-      
-      <Route path="/gtd">
-        {() => (
-          <ProtectedRoute>
-            <GtdPage />
-          </ProtectedRoute>
-        )}
-      </Route>
-      
-      <Route>
-        {() => (
-          <ProtectedRoute>
-            <NotFound />
-          </ProtectedRoute>
-        )}
-      </Route>
+      <Route component={NotFound} />
     </Switch>
   );
 }
