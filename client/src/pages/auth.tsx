@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -54,11 +54,12 @@ export default function AuthPage() {
   const [, navigate] = useLocation();
   const { login, register: registerUser, loginWithGoogle, isAuthenticated } = useAuth();
 
-  // If already authenticated, redirect to dashboard
-  if (isAuthenticated) {
-    navigate("/");
-    return null;
-  }
+  // Handle authentication redirect using useEffect to avoid hook order issues
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/");
+    }
+  }, [isAuthenticated, navigate]);
 
   // Login form
   const loginForm = useForm<LoginFormValues>({
