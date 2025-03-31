@@ -79,7 +79,13 @@ export function AddTaskDialog({ open, onOpenChange, projectId }: AddTaskDialogPr
   // Create task mutation
   const createTaskMutation = useMutation({
     mutationFn: async (data: FormValues) => {
-      const response = await apiRequest("POST", "/api/tasks", data);
+      // Create a copy of the data to avoid modifying the original form values
+      const taskData = { ...data };
+      
+      // The dueDate is already a Date object from the form, so we don't need to modify it
+      // It will be automatically serialized to ISO string by JSON.stringify when sent
+      
+      const response = await apiRequest("POST", "/api/tasks", taskData);
       return response.json();
     },
     onSuccess: (data) => {

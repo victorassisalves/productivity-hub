@@ -57,15 +57,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }));
 
   router.post("/tasks", asyncHandler(async (req, res) => {
-    const taskData = insertTaskSchema.parse(req.body);
+    // If dueDate is provided as a string, convert it to a Date object
+    const data = { ...req.body };
+    if (data.dueDate && typeof data.dueDate === 'string') {
+      data.dueDate = new Date(data.dueDate);
+    }
+    
+    const taskData = insertTaskSchema.parse(data);
     const task = await storage.createTask(taskData);
     res.status(201).json(task);
   }));
 
   router.put("/tasks/:id", asyncHandler(async (req, res) => {
     const taskId = Number(req.params.id);
-    const taskData = req.body;
-    const task = await storage.updateTask(taskId, taskData);
+    
+    // If dueDate is provided as a string, convert it to a Date object
+    const data = { ...req.body };
+    if (data.dueDate && typeof data.dueDate === 'string') {
+      data.dueDate = new Date(data.dueDate);
+    }
+    
+    const task = await storage.updateTask(taskId, data);
+    if (!task) {
+      return res.status(404).json({ message: "Task not found" });
+    }
+    res.json(task);
+  }));
+  
+  // Add PATCH handler for partial updates (used by the client)
+  router.patch("/tasks/:id", asyncHandler(async (req, res) => {
+    const taskId = Number(req.params.id);
+    
+    // If dueDate is provided as a string, convert it to a Date object
+    const data = { ...req.body };
+    if (data.dueDate && typeof data.dueDate === 'string') {
+      data.dueDate = new Date(data.dueDate);
+    }
+    
+    const task = await storage.updateTask(taskId, data);
     if (!task) {
       return res.status(404).json({ message: "Task not found" });
     }
