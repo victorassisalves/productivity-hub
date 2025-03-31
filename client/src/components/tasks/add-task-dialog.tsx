@@ -104,7 +104,7 @@ export function AddTaskDialog({ open, onOpenChange, defaultStatus = TASK_STATUSE
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Enter task description" {...field} />
+                    <Textarea placeholder="Enter task description" {...field} value={field.value || ""} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

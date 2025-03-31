@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { FRAMEWORKS } from "@/lib/constants";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Project } from "@shared/schema";
+import { AddProjectDialog } from "@/components/projects/add-project-dialog";
 
 interface SidebarProps {
   isMobileOpen: boolean;
@@ -15,6 +16,7 @@ interface SidebarProps {
 export function Sidebar({ isMobileOpen, onMobileClose }: SidebarProps) {
   const [location] = useLocation();
   const [isMounted, setIsMounted] = useState(false);
+  const [isAddProjectOpen, setIsAddProjectOpen] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -99,10 +101,7 @@ export function Sidebar({ isMobileOpen, onMobileClose }: SidebarProps) {
         </nav>
 
         <div className="p-4 border-t border-gray-200">
-          <Button className="w-full" onClick={() => {
-            // This would open the new project dialog
-            // which we'll implement separately
-          }}>
+          <Button className="w-full" onClick={() => setIsAddProjectOpen(true)}>
             <span className="material-icons mr-2 text-sm">add</span>
             New Project
           </Button>
@@ -127,6 +126,12 @@ export function Sidebar({ isMobileOpen, onMobileClose }: SidebarProps) {
           </SheetContent>
         </Sheet>
       )}
+
+      {/* Project Dialog */}
+      <AddProjectDialog 
+        open={isAddProjectOpen} 
+        onOpenChange={setIsAddProjectOpen} 
+      />
     </>
   );
 }
