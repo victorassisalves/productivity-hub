@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { apiRequest } from '@/lib/queryClient';
 import { User } from '@shared/schema';
 import { auth, loginWithGoogle, logoutFirebase } from '@/lib/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+import { createUserWithEmailAndPassword, onAuthStateChanged, signInWithEmailAndPassword } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 
 interface AuthContextType {
@@ -86,15 +86,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       setIsLoading(true);
-      const userData = await apiRequest<User>('/api/auth/login', {
-        method: 'POST',
-        body: JSON.stringify({ email, password }),
-      });
       
-      setUser(userData);
-      return true;
+      try {
+        // First try to authenticate with Firebase
+        await signInWithEmailAndPassword(auth, email, password);
+        // Firebase auth state change will trigger user update
+        return true;
+      } catch (firebaseError) {
+        console.error('Firebase login failed, falling back to server auth:', firebaseError);
+        
+        // Fall back to server authentication
+        const userData = await apiRequest<User>('/api/auth/login', {
+          method: 'POST',
+          body: JSON.stringify({ email, password }),
+        });
+        
+        setUser(userData);
+        return true;
+      }
     } catch (error) {
       console.error('Login failed', error);
+      toast({
+        title: 'Login Failed',
+        description: 'Invalid email or password. Please try again.',
+        variant: 'destructive',
+      });
       return false;
     } finally {
       setIsLoading(false);
@@ -149,15 +165,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const register = async (userData: RegisterData): Promise<boolean> => {
     try {
       setIsLoading(true);
-      const newUser = await apiRequest<User>('/api/auth/register', {
-        method: 'POST',
-        body: JSON.stringify(userData),
-      });
       
-      setUser(newUser);
-      return true;
+      try {
+        // First, create the user in Firebase Authentication
+        await createUserWithEmailAndPassword(auth, userData.email, userData.password);
+        console.log('Firebase user registration successful');
+        
+        // The Firebase auth state change will trigger the onAuthStateChanged listener,
+        // which will authenticate with our backend and set the user
+        return true;
+      } catch (firebaseError) {
+        console.error('Firebase registration failed, falling back to server registration:', firebaseError);
+        
+        // Fall back to server-only registration
+        const newUser = await apiRequest<User>('/api/auth/register', {
+          method: 'POST',
+          body: JSON.stringify(userData),
+        });
+        
+        setUser(newUser);
+        return true;
+      }
     } catch (error) {
       console.error('Registration failed', error);
+      toast({
+        title: 'Registration Failed',
+        description: error instanceof Error ? error.message : 'Could not create account. Please try again.',
+        variant: 'destructive',
+      });
       return false;
     } finally {
       setIsLoading(false);

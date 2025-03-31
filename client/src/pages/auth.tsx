@@ -21,8 +21,10 @@ import {
   FormLabel, 
   FormMessage 
 } from "@/components/ui/form";
+import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/context/auth-context";
+import { FcGoogle } from "react-icons/fc";
 
 // Login form schema
 const loginSchema = z.object({
@@ -47,9 +49,10 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export default function AuthPage() {
   const [isLoading, setIsLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("login");
   const [, navigate] = useLocation();
-  const { login, register: registerUser, isAuthenticated } = useAuth();
+  const { login, register: registerUser, loginWithGoogle, isAuthenticated } = useAuth();
 
   // If already authenticated, redirect to dashboard
   if (isAuthenticated) {
@@ -167,6 +170,37 @@ export default function AuthPage() {
                   </Button>
                 </form>
               </Form>
+
+              <div className="relative my-8">
+                <div className="absolute inset-0 flex items-center">
+                  <Separator className="w-full" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    Or continue with
+                  </span>
+                </div>
+              </div>
+
+              <Button
+                variant="outline"
+                className="w-full flex items-center gap-2"
+                disabled={googleLoading || isLoading}
+                onClick={async () => {
+                  try {
+                    setGoogleLoading(true);
+                    const success = await loginWithGoogle();
+                    if (success) {
+                      navigate("/");
+                    }
+                  } finally {
+                    setGoogleLoading(false);
+                  }
+                }}
+              >
+                <FcGoogle className="h-5 w-5" />
+                {googleLoading ? "Connecting..." : "Sign in with Google"}
+              </Button>
             </TabsContent>
             
             <TabsContent value="register">
@@ -269,6 +303,37 @@ export default function AuthPage() {
                   </Button>
                 </form>
               </Form>
+
+              <div className="relative my-8">
+                <div className="absolute inset-0 flex items-center">
+                  <Separator className="w-full" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    Or sign up with
+                  </span>
+                </div>
+              </div>
+
+              <Button
+                variant="outline"
+                className="w-full flex items-center gap-2"
+                disabled={googleLoading || isLoading}
+                onClick={async () => {
+                  try {
+                    setGoogleLoading(true);
+                    const success = await loginWithGoogle();
+                    if (success) {
+                      navigate("/");
+                    }
+                  } finally {
+                    setGoogleLoading(false);
+                  }
+                }}
+              >
+                <FcGoogle className="h-5 w-5" />
+                {googleLoading ? "Connecting..." : "Sign up with Google"}
+              </Button>
             </TabsContent>
           </Tabs>
         </CardContent>
