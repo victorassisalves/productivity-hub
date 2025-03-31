@@ -29,7 +29,7 @@ const formSchema = insertTaskSchema.extend({
 
 type FormValues = z.infer<typeof formSchema>;
 
-export function AddTaskDialog({ open, onOpenChange, defaultStatus = TASK_STATUSES.TODO }: AddTaskDialogProps) {
+export function AddTaskDialog({ open, onOpenChange, defaultStatus = TASK_STATUSES[0].id }: AddTaskDialogProps) {
   // Fetch projects for project selection
   const { data: projects = [] } = useQuery<Project[]>({
     queryKey: ["/api/projects"],
@@ -46,7 +46,7 @@ export function AddTaskDialog({ open, onOpenChange, defaultStatus = TASK_STATUSE
       description: "",
       projectId: undefined,
       status: defaultStatus,
-      priority: TASK_PRIORITIES.MEDIUM,
+      priority: TASK_PRIORITIES[1].id, // MEDIUM
       dueDate: format(new Date(), "yyyy-MM-dd"),
       progress: 0,
     },
@@ -61,20 +61,20 @@ export function AddTaskDialog({ open, onOpenChange, defaultStatus = TASK_STATUSE
         dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
         // The projectId is already converted to a number by the schema
       };
-      return await apiRequest<any>("/api/tasks", {
-        method: "POST",
-        body: JSON.stringify(formattedData)
-      });
+      return await apiRequest("POST", "/api/tasks", formattedData);
     },
-    onSuccess: (task) => {
+    onSuccess: async (response) => {
       queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
       
       // Reset form and close dialog
       form.reset();
       onOpenChange(false);
       
-      // Navigate to task details page
-      navigate(`/tasks/${task.id}`);
+      // Parse response and navigate if we have a task
+      const task = response ? response.json ? await response.json() : response : null;
+      if (task && task.id) {
+        navigate(`/tasks/${task.id}`);
+      }
     },
   });
 
@@ -158,10 +158,10 @@ export function AddTaskDialog({ open, onOpenChange, defaultStatus = TASK_STATUSE
                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                         {...field}
                       >
-                        <option value={TASK_PRIORITIES.LOW}>Low</option>
-                        <option value={TASK_PRIORITIES.MEDIUM}>Medium</option>
-                        <option value={TASK_PRIORITIES.HIGH}>High</option>
-                        <option value={TASK_PRIORITIES.URGENT}>Urgent</option>
+                        <option value={TASK_PRIORITIES[0].id}>Low</option>
+                        <option value={TASK_PRIORITIES[1].id}>Medium</option>
+                        <option value={TASK_PRIORITIES[2].id}>High</option>
+                        <option value={TASK_PRIORITIES[3].id}>Urgent</option>
                       </select>
                     </FormControl>
                     <FormMessage />
@@ -196,9 +196,9 @@ export function AddTaskDialog({ open, onOpenChange, defaultStatus = TASK_STATUSE
                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                         {...field}
                       >
-                        <option value={TASK_STATUSES.TODO}>To Do</option>
-                        <option value={TASK_STATUSES.IN_PROGRESS}>In Progress</option>
-                        <option value={TASK_STATUSES.COMPLETED}>Completed</option>
+                        <option value={TASK_STATUSES[0].id}>To Do</option>
+                        <option value={TASK_STATUSES[1].id}>In Progress</option>
+                        <option value={TASK_STATUSES[2].id}>Completed</option>
                       </select>
                     </FormControl>
                     <FormMessage />
