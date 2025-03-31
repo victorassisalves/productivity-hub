@@ -12,32 +12,32 @@ import {
 
 // Task Status Options
 export const TASK_STATUSES = [
-  { id: "TODO", name: "To Do", color: "bg-slate-500" },
-  { id: "IN_PROGRESS", name: "In Progress", color: "bg-blue-500" },
-  { id: "COMPLETED", name: "Completed", color: "bg-green-500" }
+  { id: "todo", name: "To Do", color: "bg-slate-500" },
+  { id: "in_progress", name: "In Progress", color: "bg-blue-500" },
+  { id: "completed", name: "Completed", color: "bg-green-500" }
 ];
 
 // Status colors for UI components
 export const STATUS_COLORS = {
-  TODO: "text-slate-700 border-slate-200 bg-slate-50",
-  IN_PROGRESS: "text-blue-500 border-blue-200 bg-blue-50",
-  COMPLETED: "text-green-500 border-green-200 bg-green-50"
+  todo: "text-slate-700 border-slate-200 bg-slate-50",
+  in_progress: "text-blue-500 border-blue-200 bg-blue-50",
+  completed: "text-green-500 border-green-200 bg-green-50"
 };
 
 // Task Priority Options
 export const TASK_PRIORITIES = [
-  { id: "LOW", name: "Low", color: "text-green-500", icon: "ArrowDown" },
-  { id: "MEDIUM", name: "Medium", color: "text-yellow-500", icon: "Minus" },
-  { id: "HIGH", name: "High", color: "text-orange-500", icon: "ArrowUp" },
-  { id: "URGENT", name: "Urgent", color: "text-red-500", icon: "AlertTriangle" }
+  { id: "low", name: "Low", color: "text-green-500", icon: "ArrowDown" },
+  { id: "medium", name: "Medium", color: "text-yellow-500", icon: "Minus" },
+  { id: "high", name: "High", color: "text-orange-500", icon: "ArrowUp" },
+  { id: "urgent", name: "Urgent", color: "text-red-500", icon: "AlertTriangle" }
 ];
 
 // Priority colors for UI components
 export const PRIORITY_COLORS = {
-  LOW: "text-green-500 border-green-200 bg-green-50",
-  MEDIUM: "text-yellow-500 border-yellow-200 bg-yellow-50",
-  HIGH: "text-orange-500 border-orange-200 bg-orange-50",
-  URGENT: "text-red-500 border-red-200 bg-red-50"
+  low: "text-green-500 border-green-200 bg-green-50",
+  medium: "text-yellow-500 border-yellow-200 bg-yellow-50",
+  high: "text-orange-500 border-orange-200 bg-orange-50",
+  urgent: "text-red-500 border-red-200 bg-red-50"
 };
 
 // User Roles
